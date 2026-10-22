@@ -47,6 +47,22 @@ static lv_color_t zone_color(uint8_t pct)
     return C_GREEN;
 }
 
+/* Fixed colour of fragment i: the ring itself is a coloured scale,
+ * red 0-20 %, amber 20-40 %, green 40-100 %. */
+static lv_color_t seg_zone(int i)
+{
+    int p = (i * 100) / RING_SEGMENTS + 100 / (RING_SEGMENTS * 2);
+    if (p < 20) return C_RED;
+    if (p < 40) return C_AMBER;
+    return C_GREEN;
+}
+
+/* Same hue, dimmed towards the background — used for the not-yet-filled part */
+static lv_color_t dim_of(lv_color_t c)
+{
+    return lv_color_mix(c, C_BG, 70);
+}
+
 /* ---------------- construction ---------------- */
 
 static void build_ring(lv_obj_t *parent)
@@ -100,7 +116,7 @@ static void build_center(lv_obj_t *parent)
     lv_obj_align(lbl_volt, LV_ALIGN_CENTER, 0, -38);
 
     lv_obj_t *unit = lv_label_create(parent);
-    lv_obj_set_style_text_font(unit, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(unit, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(unit, C_DIM, 0);
     lv_label_set_text(unit, "VOLTS");
     lv_obj_align(unit, LV_ALIGN_CENTER, 0, 18);
@@ -121,7 +137,7 @@ static void build_chip(lv_obj_t *parent, int idx, int dx, int dy)
     lv_obj_set_style_border_color(box, C_CHIP_OFF, 0);
 
     lv_obj_t *l = lv_label_create(box);
-    lv_obj_set_style_text_font(l, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(l, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(l, C_CHIP_OFF, 0);
     lv_label_set_text(l, CHIP_NAMES[idx]);
     lv_obj_center(l);
@@ -175,10 +191,12 @@ void ui_update(void)
 
     lv_color_t zc = zone_color(pct);
 
-    /* ring: fragments up to the current percentage, rest stays dim */
+    /* ring: every fragment keeps its zone colour; filled ones are bright,
+     * the rest is the same hue dimmed. */
     int lit = (pct * RING_SEGMENTS + 50) / 100;
     for (int i = 0; i < RING_SEGMENTS; i++) {
-        lv_obj_set_style_arc_color(segs[i], (i < lit) ? zc : C_SEG_OFF, LV_PART_INDICATOR);
+        lv_color_t c = seg_zone(i);
+        lv_obj_set_style_arc_color(segs[i], (i < lit) ? c : dim_of(c), LV_PART_INDICATOR);
     }
 
     lv_label_set_text_fmt(lbl_pct, "%d%%", pct);

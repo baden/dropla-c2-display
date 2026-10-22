@@ -16,7 +16,7 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
 
 ```
         +----------- circle 360 -----------+
-        |              95%                 |  <- 28 px, colored by zone
+        |              95%                 |  <- 36 px, colored by zone
         |                                  |
         |             58.2                 |  <- 110 px Arial Bold
         |             VOLTS                |  <- 16 px caption
@@ -47,7 +47,7 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
 
 ### 2.3 Top - percentage
 
-- Value only, no caption: `82%` (28 px) in the zone colour of the current
+- Value only, no caption: `82%` (36 px) in the zone colour of the current
   percentage, centered near the top of the inner circle.
 - Kept because the ring itself has no numeric scale.
 

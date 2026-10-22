@@ -98,7 +98,7 @@ static void build_ring(lv_obj_t *parent)
 static void build_center(lv_obj_t *parent)
 {
     lbl_pct = lv_label_create(parent);
-    lv_obj_set_style_text_font(lbl_pct, &lv_font_montserrat_28, 0);
+    lv_obj_set_style_text_font(lbl_pct, &lv_font_montserrat_36, 0);
     lv_obj_set_style_text_color(lbl_pct, C_GREEN, 0);
     lv_label_set_text(lbl_pct, "0%");
     lv_obj_align(lbl_pct, LV_ALIGN_CENTER, 0, -116);

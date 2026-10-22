@@ -30,10 +30,22 @@ void telemetry_update(void)
     float t = telem.uptime_ms / 1000.0f;
 
 #if C2_SIMULATE
-    /* Slow discharge: 95 % -> 3 % during 4 minutes, then start over.
-     * Enough to see the ring go green -> yellow -> red. */
-    float cycle = fmodf(t, 240.0f) / 240.0f;
-    float pct = 95.0f - 92.0f * cycle;
+    /* Demo discharge, 70 s per cycle:
+     *   0..20 s  95 -> 45 %   (green ring)
+     *  20..40 s  45 -> 15 %   (green -> amber)
+     *  40..60 s  15 ->  5 %   (amber -> red, last part below 10 % -> blinking)
+     *  60..70 s   5 % hold    (blinking continues, easy to catch) */
+    float cycle = fmodf(t, 70.0f);
+    float pct;
+    if (cycle < 20.0f) {
+        pct = 95.0f - (95.0f - 45.0f) * (cycle / 20.0f);
+    } else if (cycle < 40.0f) {
+        pct = 45.0f - (45.0f - 15.0f) * ((cycle - 20.0f) / 20.0f);
+    } else if (cycle < 60.0f) {
+        pct = 15.0f - (15.0f - 5.0f) * ((cycle - 40.0f) / 20.0f);
+    } else {
+        pct = 5.0f;
+    }
 
     telem.batt_pct = (uint8_t)(pct + 0.5f);
     telem.voltage_v = PACK_EMPTY_V + (pct / 100.0f) * (PACK_FULL_V - PACK_EMPTY_V);

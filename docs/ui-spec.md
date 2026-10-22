@@ -71,6 +71,15 @@ States:
 | on | `#22C55E` | `#0A2A18` |
 | off | `#46566A` | `#0B1118` |
 
+### 2.5 Low battery alarm
+
+When the state of charge drops **below 10 %**:
+
+- the big voltage number and the percentage turn **red** `#EF4444`;
+- both **blink** with a 1 s period (500 ms red / 500 ms hidden) - the "off"
+  phase paints the text in the background colour, so nothing moves;
+- above 10 % the voltage is white again and the percentage uses its zone colour.
+
 ## 3. Data model
 
 `telemetry.h` -> `telemetry_t`:
@@ -94,7 +103,11 @@ is called from the main loop at 10 Hz).
 
 `C2_SIMULATE 1` in `telemetry.cpp`:
 
-- battery: 95 % -> 3 % over 240 s, then repeats;
+- battery: 70 s per cycle, so the low-battery alarm is easy to check:
+  - `0...20 s` 95 -> 45 % (green ring),
+  - `20...40 s` 45 -> 15 % (green -> amber),
+  - `40...60 s` 15 -> 5 % (amber -> red),
+  - `60...70 s` held at 5 % (blinking red digits);
 - voltage derived from the percentage: 42.0 V ... 58.8 V (14S);
 - `RF` and `VPN` always on; `WIFI`, `STARLINK`, `LTE` blink with different periods;
 - satellites: 12 +- 4.

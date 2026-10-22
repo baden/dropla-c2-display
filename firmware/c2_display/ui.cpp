@@ -1,5 +1,6 @@
 ﻿#include "ui.h"
 
+#include <Arduino.h>
 #include <lvgl.h>
 #include <math.h>
 #include <stdio.h>
@@ -21,6 +22,10 @@ LV_FONT_DECLARE(font_voltage);
 #define C_CHIP_BG    lv_color_hex(0x0B1118)
 #define C_CHIP_OFF   lv_color_hex(0x46566A)
 #define C_CHIP_ON_BG lv_color_hex(0x0A2A18)
+
+/* ---------------- low battery alarm ---------------- */
+#define LOW_BATTERY_PCT 10   /* % at which the readout starts blinking red */
+#define BLINK_HALF_MS   500  /* half period: 500 ms on, 500 ms off */
 
 /* ---------------- ring ---------------- */
 #define RING_SEGMENTS 36
@@ -194,12 +199,24 @@ void ui_update(void)
     }
 
     lv_label_set_text_fmt(lbl_pct, "%d%%", pct);
-    lv_obj_set_style_text_color(lbl_pct, zc, 0);
 
     /* lroundf + integer formatting: LVGL's formatter on this core does not
      * handle "%f" (produces a bare 'f'), so avoid float specifiers entirely. */
     int tenths = (int)lroundf(telem.voltage_v * 10.0f);
     lv_label_set_text_fmt(lbl_volt, "%d.%d", tenths / 10, tenths % 10);
+
+    /* Low battery alarm: below 10 % the voltage and the percentage blink red.
+     * The "off" phase paints the text in the background colour, so nothing
+     * moves and the layout stays stable. */
+    lv_color_t volt_c = C_VOLT;
+    lv_color_t pct_c = zc;
+    if (pct < LOW_BATTERY_PCT) {
+        bool on = ((millis() / BLINK_HALF_MS) & 1) == 0;
+        volt_c = on ? C_RED : C_BG;
+        pct_c = on ? C_RED : C_BG;
+    }
+    lv_obj_set_style_text_color(lbl_pct, pct_c, 0);
+    lv_obj_set_style_text_color(lbl_volt, volt_c, 0);
 
     set_chip(0, telem.rf_on);
     set_chip(1, telem.wifi_on);

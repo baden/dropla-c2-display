@@ -45,6 +45,7 @@ static lv_obj_t *lbl_pct;
 static lv_obj_t *lbl_status;
 static lv_obj_t *lbl_odo;
 static lv_obj_t *lbl_odo_unit;
+static lv_obj_t *odo_row;
 
 #define CHIP_COUNT 6
 static lv_obj_t *chips[CHIP_COUNT];
@@ -234,6 +235,8 @@ static void build_odometer(lv_obj_t *parent)
      * baselines up when both boxes are aligned to the bottom. */
     lv_obj_set_style_pad_bottom(lbl_odo_unit, 2, 0);
     lv_label_set_text(lbl_odo_unit, "km");
+
+    odo_row = row;
 }
 
 /* ---------------- update helpers ---------------- */
@@ -243,6 +246,124 @@ static void set_chip(int idx, bool on)
     lv_obj_set_style_bg_color(chips[idx], on ? C_CHIP_ON_BG : C_CHIP_BG, 0);
     lv_obj_set_style_border_color(chips[idx], on ? C_GREEN : C_CHIP_OFF, 0);
     lv_obj_set_style_text_color(chip_text[idx], on ? C_GREEN : C_CHIP_OFF, 0);
+}
+
+/* Paint the ring for a charge value: every fragment keeps its zone colour,
+ * filled ones are bright, the rest is the same hue dimmed. */
+static void ring_paint(uint8_t pct)
+{
+    if (pct > 100) pct = 100;
+
+    int lit = (pct * RING_SEGMENTS + 50) / 100;
+    for (int i = 0; i < RING_SEGMENTS; i++) {
+        lv_color_t c = seg_zone(i);
+        lv_obj_set_style_arc_color(segs[i], (i < lit) ? c : dim_of(c), LV_PART_INDICATOR);
+    }
+}
+
+/* ---------------- boot animation ----------------
+ * The ring sweeps 0 -> 100 % in one second and stays full, then the readouts
+ * fade in one by one: voltage, charge, status line, the six chips (each in its
+ * "on" state), the odometer. At BOOT_END_MS everything jumps to the real
+ * telemetry and the normal demo starts. Total ~2.7 s.
+ */
+#define BOOT_RING_MS     1000
+#define BOOT_FADE_MS     260
+#define BOOT_T_VOLT      1000
+#define BOOT_T_PCT       1250
+#define BOOT_T_STATUS    1450
+#define BOOT_T_CHIP      1550
+#define BOOT_T_CHIP_STEP 90
+#define BOOT_T_ODO       2300
+#define BOOT_END_MS      2700
+
+static bool boot_active = true;
+
+static void boot_ring_cb(void *var, int32_t v)
+{
+    (void)var;
+    ring_paint((uint8_t)v);
+}
+
+static void boot_opa_cb(void *var, int32_t v)
+{
+    lv_obj_set_style_opa((lv_obj_t *)var, (lv_opa_t)v, 0);
+}
+
+/* Hide the object now and fade it back in after delay_ms. */
+static void boot_fade(lv_obj_t *obj, uint32_t delay_ms)
+{
+    lv_obj_set_style_opa(obj, LV_OPA_TRANSP, 0);
+
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_values(&a, 0, LV_OPA_COVER);
+    lv_anim_set_time(&a, BOOT_FADE_MS);
+    lv_anim_set_delay(&a, delay_ms);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_set_exec_cb(&a, boot_opa_cb);
+    lv_anim_start(&a);
+}
+
+static void boot_end_cb(lv_timer_t *t)
+{
+    lv_timer_del(t);
+
+    /* Make sure nothing is left half transparent, then jump to real values. */
+    lv_obj_t *all[] = { lbl_volt, lbl_unit, lbl_pct, lbl_status, odo_row };
+    for (unsigned i = 0; i < sizeof(all) / sizeof(all[0]); i++) {
+        lv_obj_set_style_opa(all[i], LV_OPA_COVER, 0);
+    }
+    for (int i = 0; i < CHIP_COUNT; i++) {
+        lv_obj_set_style_opa(chips[i], LV_OPA_COVER, 0);
+    }
+
+    boot_active = false;
+    ui_update();
+    printf("boot animation done, demo running\r\n");
+}
+
+static void boot_start(void)
+{
+    static int ring_anim_tag;   /* animation var needs a stable address */
+
+    ring_paint(0);
+
+    /* Placeholder picture of a fully healthy aircraft, replaced at the end. */
+    lv_label_set_text(lbl_volt, "88.8");
+    lv_obj_align_to(lbl_unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 1, -1);
+    lv_label_set_text(lbl_pct, "100%");
+    lv_obj_set_style_text_color(lbl_pct, C_GREEN, 0);
+    set_status_text("System check");
+    for (int i = 0; i < CHIP_COUNT; i++) {
+        set_chip(i, true);
+    }
+    lv_label_set_text(chip_text[5], "GPS");     /* no satellite count yet */
+    lv_label_set_text(lbl_odo, "0");
+    lv_label_set_text(lbl_odo_unit, "km");
+
+    /* 1. ring sweep 0 -> 100 % */
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, &ring_anim_tag);
+    lv_anim_set_values(&a, 0, 100);
+    lv_anim_set_time(&a, BOOT_RING_MS);
+    lv_anim_set_exec_cb(&a, boot_ring_cb);
+    lv_anim_start(&a);
+
+    /* 2. sequential reveal */
+    boot_fade(lbl_volt, BOOT_T_VOLT);
+    boot_fade(lbl_unit, BOOT_T_VOLT);
+    boot_fade(lbl_pct, BOOT_T_PCT);
+    boot_fade(lbl_status, BOOT_T_STATUS);
+    for (int i = 0; i < CHIP_COUNT; i++) {
+        boot_fade(chips[i], BOOT_T_CHIP + (uint32_t)i * BOOT_T_CHIP_STEP);
+    }
+    boot_fade(odo_row, BOOT_T_ODO);
+
+    /* 3. snap to the real values */
+    lv_timer_create(boot_end_cb, BOOT_END_MS, NULL);
 }
 
 /* ---------------- public ---------------- */
@@ -259,23 +380,19 @@ void ui_init(void)
     build_chips(scr);
     build_odometer(scr);
 
-    ui_update();
+    boot_start();
 }
 
 void ui_update(void)
 {
+    if (boot_active) return;
+
     uint8_t pct = telem.batt_pct;
     if (pct > 100) pct = 100;
 
     lv_color_t zc = zone_color(pct);
 
-    /* ring: every fragment keeps its zone colour; filled ones are bright,
-     * the rest is the same hue dimmed. */
-    int lit = (pct * RING_SEGMENTS + 50) / 100;
-    for (int i = 0; i < RING_SEGMENTS; i++) {
-        lv_color_t c = seg_zone(i);
-        lv_obj_set_style_arc_color(segs[i], (i < lit) ? c : dim_of(c), LV_PART_INDICATOR);
-    }
+    ring_paint(pct);
 
     lv_label_set_text_fmt(lbl_pct, "%d%%", pct);
 

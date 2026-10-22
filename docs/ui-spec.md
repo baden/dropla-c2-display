@@ -117,6 +117,26 @@ Under the second chip row, centred (`+126` px from the screen centre):
 - **the unit alternates every 5 s**: kilometres for 5 s, miles for 5 s, looping
   (`mi = round(km * 0.621371)`).
 
+### 2.8 Boot animation
+
+On power-up the panel plays a ~2.7 s self-test, then switches to live data:
+
+| Time | What happens |
+|---|---|
+| 0 … 1000 ms | ring sweeps 0 -> 100 % (all 36 fragments light up), stays full |
+| 1000 ms | voltage `88.8` + `V` fade in (260 ms fade) |
+| 1250 ms | charge `100%` fades in |
+| 1450 ms | status line shows `System check` |
+| 1550 ms + 90 ms each | six chips fade in one by one, all in the green "on" state |
+| 2300 ms | odometer fades in (`0 km`) |
+| 2700 ms | everything jumps to the real telemetry, the demo starts |
+
+During the animation `ui_update()` is gated by `boot_active`, so nothing
+overwrites the placeholders; the ring is driven by a separate `lv_anim`
+(`boot_ring_cb` -> `ring_paint()`). At the end a one-shot `lv_timer` restores
+full opacity and calls `ui_update()` once. A `boot animation done` line is
+printed on the serial console.
+
 ## 3. Data model
 
 `telemetry.h` -> `telemetry_t`:

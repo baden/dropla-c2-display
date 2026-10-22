@@ -1,0 +1,10 @@
+# Нормализация переводов строк: в репозитории LF, в рабочей копии — как принято в ОС.
+* text=auto
+
+*.ps1  text eol=crlf
+*.csv  text eol=lf
+*.md   text eol=lf
+*.svg  text eol=lf
+*.ino  text eol=lf
+*.cpp  text eol=lf
+*.h    text eol=lf

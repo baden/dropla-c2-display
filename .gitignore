@@ -1,0 +1,18 @@
+# Сборочные артефакты arduino-cli
+.build/
+build/
+
+# Распакованное демо Waveshare и архив (198 МБ) — не храним в git
+vendor/
+ESP32-S3-Touch-LCD-1.85-Demo.zip
+*.zip
+
+# Даташиты (16 МБ) — качаются с сайта Espressif/Waveshare
+*.pdf
+
+# Оси/редакторы
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini

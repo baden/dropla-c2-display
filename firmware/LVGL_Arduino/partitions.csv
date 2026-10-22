@@ -1,0 +1,9 @@
+# Custom partition table for Waveshare ESP32-S3-Touch-LCD-1.85 (16 MB flash)
+# app0 6 МБ (без OTA), model 3.9 МБ под srmodels.bin (ESP-SR wake word), ffat 6 МБ.
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  factory, 0x10000,  0x600000,
+model,    data, spiffs,  0x610000, 0x3E0000,
+ffat,     data, fat,     0x9F0000, 0x600000,
+coredump, data, coredump,0xFF0000, 0x10000,

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
+  <defs>
+    <clipPath id="round"><circle cx="180" cy="180" r="180"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="360" height="360" fill="#0A0E13"/>
+    <circle cx="180" cy="180" r="172" fill="none" stroke="#131A23" stroke-width="10"/>
+    <circle cx="180" cy="180" r="172" fill="none" stroke="#22D3EE" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="810 1080" transform="rotate(135 180 180)"/>
+    <text x="180" y="36" fill="#64748B" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">12:34:56</text>
+    <text x="180" y="56" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">LINK ●  9 SAT</text>
+    <text x="180" y="96" fill="#E6EDF3" font-family="Montserrat, Arial" font-size="20" text-anchor="middle">137°</text>
+    <text x="180" y="168" fill="#E6EDF3" font-family="Montserrat, Arial" font-size="48" text-anchor="middle">138</text>
+    <text x="180" y="194" fill="#64748B" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">ALT, м</text>
+    <text x="180" y="224" fill="#22C55E" font-family="Montserrat, Arial" font-size="18" text-anchor="middle">+1.4 м/с</text>
+    <text x="108" y="264" fill="#E6EDF3" font-family="Montserrat, Arial" font-size="24" text-anchor="middle">13.2</text>
+    <text x="252" y="264" fill="#E6EDF3" font-family="Montserrat, Arial" font-size="24" text-anchor="middle">87%</text>
+    <text x="108" y="284" fill="#64748B" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">м/с</text>
+    <text x="252" y="284" fill="#64748B" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">BAT</text>
+    <rect x="114" y="290" width="132" height="40" rx="20" fill="#131A23"/>
+    <text x="180" y="315" fill="#64748B" font-family="Montserrat, Arial" font-size="16" text-anchor="middle">ARM</text>
+    <rect x="253" y="47" width="46" height="26" rx="13" fill="#131A23"/>
+    <text x="276" y="64" fill="#64748B" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">SYS</text>
+  </g>
+  <circle cx="180" cy="180" r="179" fill="none" stroke="#1E293B" stroke-width="2"/>
+</svg>

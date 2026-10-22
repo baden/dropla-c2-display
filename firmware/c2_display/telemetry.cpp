@@ -21,6 +21,7 @@ telemetry_t telem = {
     .lte_on = false,
     .vpn_on = true,
     .sats = 14,
+    .odometer_km = 634,
     .uptime_ms = 0,
 };
 
@@ -58,6 +59,10 @@ void telemetry_update(void)
     telem.vpn_on = true;
 
     telem.sats = (telem.batt_pct > 0) ? (uint8_t)(12 + (int)(4.0f * sinf(t * 0.2f))) : 0;
+
+    /* Odometer: starts at 634 km and grows by 1 km every 30 s so the digits
+     * visibly change during a demo session. */
+    telem.odometer_km = 634u + (uint32_t)(t / 30.0f);
 #else
     (void)t;
 #endif

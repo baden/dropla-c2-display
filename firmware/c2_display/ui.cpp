@@ -17,6 +17,7 @@ LV_FONT_DECLARE(font_unit);
 #define C_VOLT       lv_color_hex(0xF2F6FA)
 #define C_DIM        lv_color_hex(0x5B6B7C)
 #define C_UNIT       lv_color_hex(0x2B343E)  /* barely visible unit "V" */
+#define C_ODO        lv_color_hex(0x93A3B5)  /* odometer value */
 #define C_RED        lv_color_hex(0xEF4444)
 #define C_AMBER      lv_color_hex(0xF59E0B)
 #define C_GREEN      lv_color_hex(0x22C55E)
@@ -40,6 +41,8 @@ static lv_obj_t *segs[RING_SEGMENTS];
 static lv_obj_t *lbl_volt;
 static lv_obj_t *lbl_unit;
 static lv_obj_t *lbl_pct;
+static lv_obj_t *lbl_odo;
+static lv_obj_t *lbl_odo_unit;
 
 #define CHIP_COUNT 6
 static lv_obj_t *chips[CHIP_COUNT];
@@ -171,6 +174,33 @@ static void build_chips(lv_obj_t *parent)
     build_chip(parent, 5, dx2, 90, w2);
 }
 
+/* Odometer under the second chip row: value 24 px, unit 14 px, baselines aligned. */
+static void build_odometer(lv_obj_t *parent)
+{
+    lv_obj_t *row = lv_obj_create(parent);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, 220, 30);
+    lv_obj_align(row, LV_ALIGN_CENTER, 0, 124);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(row, 4, 0);
+
+    lbl_odo = lv_label_create(row);
+    lv_obj_set_style_text_font(lbl_odo, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(lbl_odo, C_ODO, 0);
+    lv_label_set_text(lbl_odo, "0");
+
+    lbl_odo_unit = lv_label_create(row);
+    lv_obj_set_style_text_font(lbl_odo_unit, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(lbl_odo_unit, C_DIM, 0);
+    /* 24 px font has base_line 5, 14 px font has 3: +2 px padding lines the
+     * baselines up when both boxes are aligned to the bottom. */
+    lv_obj_set_style_pad_bottom(lbl_odo_unit, 2, 0);
+    lv_label_set_text(lbl_odo_unit, "km");
+}
+
 /* ---------------- update helpers ---------------- */
 
 static void set_chip(int idx, bool on)
@@ -192,6 +222,7 @@ void ui_init(void)
     build_ring(scr);
     build_center(scr);
     build_chips(scr);
+    build_odometer(scr);
 
     ui_update();
 }
@@ -247,4 +278,6 @@ void ui_update(void)
     bool gps = telem.sats > 0;
     set_chip(5, gps);
     lv_label_set_text_fmt(chip_text[5], gps ? "GPS %d" : "GPS", telem.sats);
+
+    lv_label_set_text_fmt(lbl_odo, "%u", (unsigned)telem.odometer_km);
 }

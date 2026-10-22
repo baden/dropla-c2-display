@@ -19,6 +19,7 @@ typedef struct {
     bool     lte_on;       /* LTE link is up */
     bool     vpn_on;       /* VPN tunnel is up */
     uint8_t  sats;         /* GNSS satellites the drone sees */
+    uint32_t odometer_km;  /* total distance flown, km */
     uint32_t uptime_ms;
 } telemetry_t;
 

@@ -22,6 +22,7 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
         |                                  |
         |   (CRSF)  (WIFI)  (STARLINK)     |  <- row 1 of status chips
         |   (LTE)    (VPN)   (GPS 14)      |  <- row 2
+        |            634 km                |  <- odometer
         +--- 36-segment battery ring ------+
 ```
 
@@ -84,6 +85,15 @@ When the state of charge drops **below 10 %**:
   phase paints the text in the background colour, so nothing moves;
 - above 10 % the voltage is white again and the percentage uses its zone colour.
 
+### 2.6 Odometer
+
+Under the second chip row, centred (`+124` px from the screen centre):
+
+- value `634` in 24 px, colour `#93A3B5`;
+- unit `km` in 14 px, dim `#5B6B7C`, baselines aligned with the value;
+- the pair is laid out in a centred flex row, so it stays centred when the
+  number grows (`999` -> `1000`).
+
 ## 3. Data model
 
 `telemetry.h` -> `telemetry_t`:
@@ -98,6 +108,7 @@ When the state of charge drops **below 10 %**:
 | `lte_on` | bool | LTE link |
 | `vpn_on` | bool | VPN tunnel |
 | `sats` | uint8 | visible GNSS satellites |
+| `odometer_km` | uint32 | total distance flown, km |
 | `uptime_ms` | uint32 | milliseconds since boot |
 
 The UI reads this structure only; it never writes to it (`telemetry_update()`
@@ -113,8 +124,9 @@ is called from the main loop at 10 Hz).
   - `40...60 s` 15 -> 5 % (amber -> red),
   - `60...70 s` held at 5 % (blinking red digits);
 - voltage derived from the percentage: 42.0 V ... 58.8 V (14S);
-- `RF` and `VPN` always on; `WIFI`, `STARLINK`, `LTE` blink with different periods;
-- satellites: 12 +- 4.
+- `CRSF` and `VPN` always on; `WIFI`, `STARLINK`, `LTE` blink with different periods;
+- satellites: 12 +- 4;
+- odometer: starts at 634 km, +1 km every 30 s.
 
 Set `C2_SIMULATE 0` when a real link fills `telemetry_t`.
 

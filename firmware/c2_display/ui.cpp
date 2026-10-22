@@ -264,8 +264,11 @@ static void ring_paint(uint8_t pct)
 /* ---------------- boot animation ----------------
  * The ring sweeps 0 -> 100 % in one second and stays full, then the readouts
  * fade in one by one: voltage, charge, status line, the six chips (each in its
- * "on" state), the odometer. At BOOT_END_MS everything jumps to the real
- * telemetry and the normal demo starts. Total ~2.7 s.
+ * "on" state), the odometer. The fade is a colour mix towards the background:
+ * object opacity is avoided on purpose, because LVGL renders a semi-transparent
+ * object into a temporary layer whose untouched pixels show up as white boxes.
+ * At BOOT_END_MS everything jumps to the real telemetry and the demo starts.
+ * Total ~2.7 s.
  */
 #define BOOT_RING_MS     1000
 #define BOOT_FADE_MS     260
@@ -279,44 +282,72 @@ static void ring_paint(uint8_t pct)
 
 static bool boot_active = true;
 
+/* One fading element: optional chip box (bg + border) plus a text label. */
+typedef struct {
+    lv_obj_t *box;
+    lv_obj_t *text;
+    lv_color_t text_c;
+    lv_color_t bg_c;
+    lv_color_t border_c;
+} boot_fade_t;
+
+#define BOOT_FADES_MAX 12
+static boot_fade_t boot_fades[BOOT_FADES_MAX];
+static int boot_fade_n;
+
+/* 0 = fully background (invisible on the black screen), 255 = final colour. */
+static void boot_fade_cb(void *var, int32_t v)
+{
+    boot_fade_t *f = (boot_fade_t *)var;
+
+    if (f->box != NULL) {
+        lv_obj_set_style_bg_color(f->box, lv_color_mix(f->bg_c, C_BG, (uint8_t)v), 0);
+        lv_obj_set_style_border_color(f->box, lv_color_mix(f->border_c, C_BG, (uint8_t)v), 0);
+    }
+    if (f->text != NULL) {
+        lv_obj_set_style_text_color(f->text, lv_color_mix(f->text_c, C_BG, (uint8_t)v), 0);
+    }
+}
+
+static boot_fade_t *boot_add(lv_obj_t *box, lv_obj_t *text,
+                             lv_color_t text_c, lv_color_t bg_c, lv_color_t border_c)
+{
+    boot_fade_t *f = &boot_fades[boot_fade_n++];
+    f->box = box;
+    f->text = text;
+    f->text_c = text_c;
+    f->bg_c = bg_c;
+    f->border_c = border_c;
+    return f;
+}
+
+static void boot_show(boot_fade_t *f, uint32_t delay_ms)
+{
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, f);
+    lv_anim_set_values(&a, 0, 255);
+    lv_anim_set_time(&a, BOOT_FADE_MS);
+    lv_anim_set_delay(&a, delay_ms);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_set_exec_cb(&a, boot_fade_cb);
+    lv_anim_start(&a);
+}
+
 static void boot_ring_cb(void *var, int32_t v)
 {
     (void)var;
     ring_paint((uint8_t)v);
 }
 
-static void boot_opa_cb(void *var, int32_t v)
-{
-    lv_obj_set_style_opa((lv_obj_t *)var, (lv_opa_t)v, 0);
-}
-
-/* Hide the object now and fade it back in after delay_ms. */
-static void boot_fade(lv_obj_t *obj, uint32_t delay_ms)
-{
-    lv_obj_set_style_opa(obj, LV_OPA_TRANSP, 0);
-
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, obj);
-    lv_anim_set_values(&a, 0, LV_OPA_COVER);
-    lv_anim_set_time(&a, BOOT_FADE_MS);
-    lv_anim_set_delay(&a, delay_ms);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-    lv_anim_set_exec_cb(&a, boot_opa_cb);
-    lv_anim_start(&a);
-}
-
 static void boot_end_cb(lv_timer_t *t)
 {
     lv_timer_del(t);
 
-    /* Make sure nothing is left half transparent, then jump to real values. */
-    lv_obj_t *all[] = { lbl_volt, lbl_unit, lbl_pct, lbl_status, odo_row };
-    for (unsigned i = 0; i < sizeof(all) / sizeof(all[0]); i++) {
-        lv_obj_set_style_opa(all[i], LV_OPA_COVER, 0);
-    }
-    for (int i = 0; i < CHIP_COUNT; i++) {
-        lv_obj_set_style_opa(chips[i], LV_OPA_COVER, 0);
+    /* Finish the (already done) fades explicitly, then jump to real values. */
+    for (int i = 0; i < boot_fade_n; i++) {
+        lv_anim_del(&boot_fades[i], boot_fade_cb);
+        boot_fade_cb(&boot_fades[i], 255);
     }
 
     boot_active = false;
@@ -329,12 +360,12 @@ static void boot_start(void)
     static int ring_anim_tag;   /* animation var needs a stable address */
 
     ring_paint(0);
+    boot_fade_n = 0;
 
     /* Placeholder picture of a fully healthy aircraft, replaced at the end. */
     lv_label_set_text(lbl_volt, "88.8");
     lv_obj_align_to(lbl_unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 1, -1);
     lv_label_set_text(lbl_pct, "100%");
-    lv_obj_set_style_text_color(lbl_pct, C_GREEN, 0);
     set_status_text("System check");
     for (int i = 0; i < CHIP_COUNT; i++) {
         set_chip(i, true);
@@ -342,6 +373,24 @@ static void boot_start(void)
     lv_label_set_text(chip_text[5], "GPS");     /* no satellite count yet */
     lv_label_set_text(lbl_odo, "0");
     lv_label_set_text(lbl_odo_unit, "km");
+
+    /* Register what fades in and in which final colour. */
+    boot_fade_t *f_volt  = boot_add(NULL, lbl_volt,      C_VOLT,   C_BG, C_BG);
+    boot_fade_t *f_unit  = boot_add(NULL, lbl_unit,      C_UNIT,   C_BG, C_BG);
+    boot_fade_t *f_pct   = boot_add(NULL, lbl_pct,       C_GREEN,  C_BG, C_BG);
+    boot_fade_t *f_stat  = boot_add(NULL, lbl_status,    C_STATUS, C_BG, C_BG);
+    boot_fade_t *f_odo   = boot_add(NULL, lbl_odo,       C_ODO,    C_BG, C_BG);
+    boot_fade_t *f_ounit = boot_add(NULL, lbl_odo_unit,  C_DIM,    C_BG, C_BG);
+
+    boot_fade_t *f_chip[CHIP_COUNT];
+    for (int i = 0; i < CHIP_COUNT; i++) {
+        f_chip[i] = boot_add(chips[i], chip_text[i], C_GREEN, C_CHIP_ON_BG, C_GREEN);
+    }
+
+    /* Start from "invisible": everything painted in the background colour. */
+    for (int i = 0; i < boot_fade_n; i++) {
+        boot_fade_cb(&boot_fades[i], 0);
+    }
 
     /* 1. ring sweep 0 -> 100 % */
     lv_anim_t a;
@@ -353,14 +402,15 @@ static void boot_start(void)
     lv_anim_start(&a);
 
     /* 2. sequential reveal */
-    boot_fade(lbl_volt, BOOT_T_VOLT);
-    boot_fade(lbl_unit, BOOT_T_VOLT);
-    boot_fade(lbl_pct, BOOT_T_PCT);
-    boot_fade(lbl_status, BOOT_T_STATUS);
+    boot_show(f_volt, BOOT_T_VOLT);
+    boot_show(f_unit, BOOT_T_VOLT);
+    boot_show(f_pct, BOOT_T_PCT);
+    boot_show(f_stat, BOOT_T_STATUS);
     for (int i = 0; i < CHIP_COUNT; i++) {
-        boot_fade(chips[i], BOOT_T_CHIP + (uint32_t)i * BOOT_T_CHIP_STEP);
+        boot_show(f_chip[i], BOOT_T_CHIP + (uint32_t)i * BOOT_T_CHIP_STEP);
     }
-    boot_fade(odo_row, BOOT_T_ODO);
+    boot_show(f_odo, BOOT_T_ODO);
+    boot_show(f_ounit, BOOT_T_ODO);
 
     /* 3. snap to the real values */
     lv_timer_create(boot_end_cb, BOOT_END_MS, NULL);

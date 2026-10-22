@@ -88,6 +88,17 @@ CLK 14, CMD 17, D0 16.
    `esptool.exe -p COM4 write-flash 0x610000 .build\LVGL_Arduino\srmodels.bin`
 5. **SD-карты нет** — при загрузке печатается `SD card initialization failed` / `No SD card attached`, это нормально.
 
+## Грабли панели и LVGL (наступили на свои)
+
+1. **Подсветка до первого кадра = красно-синие полосы.** `Backlight_Init()` сразу ставит
+   50 %, и на ещё не инициализированной панели видно шум её ОЗУ. Поэтому в `setup()`:
+   `Backlight_Init(); Set_Backlight(0);` → `LCD_Init(); lvgl_port_init(); ui_init();`
+   → `lv_refr_now(NULL); delay(50); Set_Backlight(LCD_Backlight);`.
+2. **`lv_obj_set_style_opa()` не годится для плавного появления.** При `opa < 255` LVGL 8.3
+   рисует объект в промежуточный слой, который не очищается, — вокруг цифр и плашек
+   появляются белые прямоугольники. Появление делаем миксом цвета к фону:
+   `lv_color_mix(target, C_BG, v)`, где `v` идёт 0 → 255 (см. `boot_fade_cb()` в `ui.cpp`).
+
 ## Как собрать/залить
 
 ```powershell

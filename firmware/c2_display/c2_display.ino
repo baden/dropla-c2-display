@@ -27,10 +27,18 @@ void setup()
     I2C_Init();
     TCA9554PWR_Init(0x00);      /* display/touch reset lines live on the expander */
     Backlight_Init();
+    Set_Backlight(0);           /* keep the panel dark until a valid frame is drawn */
 
     LCD_Init();
     lvgl_port_init();
     ui_init();
+
+    /* First frame = black screen with the ring at 0 %, no placeholders yet.
+     * Only then do we switch the backlight on, so the uninitialised panel
+     * (red/blue noise) is never visible. */
+    lv_refr_now(NULL);
+    delay(50);
+    Set_Backlight(LCD_Backlight);
 
     telemetry_update();
     ui_update();

@@ -133,9 +133,19 @@ On power-up the panel plays a ~2.7 s self-test, then switches to live data:
 
 During the animation `ui_update()` is gated by `boot_active`, so nothing
 overwrites the placeholders; the ring is driven by a separate `lv_anim`
-(`boot_ring_cb` -> `ring_paint()`). At the end a one-shot `lv_timer` restores
-full opacity and calls `ui_update()` once. A `boot animation done` line is
-printed on the serial console.
+(`boot_ring_cb` -> `ring_paint()`).
+
+The fade is **not** an opacity animation: every element starts painted in the
+background colour and its colours are mixed towards the final ones
+(`lv_color_mix(target, C_BG, v)`). Semi-transparent objects would make LVGL
+render into a temporary layer and leave white boxes around the text on this
+panel. At the end a one-shot `lv_timer` finishes all fades, restores the exact
+colours and calls `ui_update()` once. A `boot animation done` line is printed on
+the serial console.
+
+The backlight stays off (`Set_Backlight(0)`) until the first frame is flushed
+(`lv_refr_now()`), otherwise the uninitialised panel shows red/blue noise for
+the duration of the init.
 
 ## 3. Data model
 

@@ -7,8 +7,10 @@
 
 #include "telemetry.h"
 
-/* Big digits (Arial Bold 110 px, subset 0-9 and '.') generated with lv_font_conv */
+/* Big digits (Arial Bold 110 px) and the small "V" unit (Arial Bold 55 px),
+ * both generated with lv_font_conv. */
 LV_FONT_DECLARE(font_voltage);
+LV_FONT_DECLARE(font_unit);
 
 /* ---------------- palette ---------------- */
 #define C_BG         lv_color_hex(0x05070A)
@@ -35,6 +37,7 @@ LV_FONT_DECLARE(font_voltage);
 static lv_obj_t *segs[RING_SEGMENTS];
 
 static lv_obj_t *lbl_volt;
+static lv_obj_t *lbl_unit;
 static lv_obj_t *lbl_pct;
 
 #define CHIP_COUNT 6
@@ -114,11 +117,14 @@ static void build_center(lv_obj_t *parent)
     lv_label_set_text(lbl_volt, "0.0");
     lv_obj_align(lbl_volt, LV_ALIGN_CENTER, 0, -38);
 
+    /* Unit: half-height grey "V" sitting to the right of the digits with its
+     * baseline on the digits' baseline. The digits themselves are untouched. */
     lv_obj_t *unit = lv_label_create(parent);
-    lv_obj_set_style_text_font(unit, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(unit, &font_unit, 0);
     lv_obj_set_style_text_color(unit, C_DIM, 0);
-    lv_label_set_text(unit, "VOLTS");
-    lv_obj_align(unit, LV_ALIGN_CENTER, 0, 18);
+    lv_label_set_text(unit, "V");
+    lv_obj_align_to(unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, -1);
+    lbl_unit = unit;
 }
 
 static void build_chip(lv_obj_t *parent, int idx, int dx, int dy)
@@ -205,18 +211,25 @@ void ui_update(void)
     int tenths = (int)lroundf(telem.voltage_v * 10.0f);
     lv_label_set_text_fmt(lbl_volt, "%d.%d", tenths / 10, tenths % 10);
 
+    /* The digits are centred and their width depends on the value, so the unit
+     * is re-glued to their bottom-right corner after every text change. */
+    lv_obj_align_to(lbl_unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, -1);
+
     /* Low battery alarm: below 10 % the voltage and the percentage blink red.
      * The "off" phase paints the text in the background colour, so nothing
      * moves and the layout stays stable. */
     lv_color_t volt_c = C_VOLT;
+    lv_color_t unit_c = C_DIM;
     lv_color_t pct_c = zc;
     if (pct < LOW_BATTERY_PCT) {
         bool on = ((millis() / BLINK_HALF_MS) & 1) == 0;
         volt_c = on ? C_RED : C_BG;
+        unit_c = on ? C_RED : C_BG;
         pct_c = on ? C_RED : C_BG;
     }
     lv_obj_set_style_text_color(lbl_pct, pct_c, 0);
     lv_obj_set_style_text_color(lbl_volt, volt_c, 0);
+    lv_obj_set_style_text_color(lbl_unit, unit_c, 0);
 
     set_chip(0, telem.rf_on);
     set_chip(1, telem.wifi_on);

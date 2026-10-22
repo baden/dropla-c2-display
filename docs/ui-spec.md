@@ -18,8 +18,7 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
         +----------- circle 360 -----------+
         |              95%                 |  <- 36 px, colored by zone
         |                                  |
-        |             58.2                 |  <- 110 px Arial Bold
-        |             VOLTS                |  <- 16 px caption
+        |             58.2 V               |  <- 110 px Arial Bold + 55 px "V"
         |                                  |
         |   (RF)   (WIFI)   (STARLINK)     |  <- row 1 of status chips
         |   (LTE)  (VPN)    (GPS 14)       |  <- row 2
@@ -31,7 +30,11 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
 - Large pack voltage, one decimal, e.g. `58.2`.
 - Font: Arial Bold 110 px subset (`0-9`, `.`), generated with `lv_font_conv`
   -> `firmware/c2_display/font_voltage.c`.
-- Caption under the number: `VOLTS` (16 px, dim).
+- Unit: a grey `V` in half the size of the digits (Arial Bold 55 px, `font_unit.c`),
+  placed to the right of the number and aligned to the bottom edge of the digits.
+  The digits themselves stay exactly where they are (centred, `-38` px from the
+  screen centre); the unit is re-glued after every text change because the width
+  of the number varies.
 
 ### 2.2 Ring - state of charge
 
@@ -75,7 +78,7 @@ States:
 
 When the state of charge drops **below 10 %**:
 
-- the big voltage number and the percentage turn **red** `#EF4444`;
+- the big voltage number (and its `V` unit) and the percentage turn **red** `#EF4444`;
 - both **blink** with a 1 s period (500 ms red / 500 ms hidden) - the "off"
   phase paints the text in the background colour, so nothing moves;
 - above 10 % the voltage is white again and the percentage uses its zone colour.
@@ -116,8 +119,10 @@ Set `C2_SIMULATE 0` when a real link fills `telemetry_t`.
 
 ## 5. Implementation notes
 
-- Custom font is generated once:
+- Custom fonts are generated once:
   `npx lv_font_conv --font arialbd.ttf --range 0x30-0x39 --range 0x2E --size 110 --bpp 4 --format lvgl -o font_voltage.c`
+  `npx lv_font_conv --font arialbd.ttf --range 0x56 --size 55 --bpp 4 --format lvgl -o font_unit.c`
+  (only the glyphs that are actually used, so the bitmap tables stay small).
 - **Never use `%f` in `lv_label_set_text_fmt()` on this core** - LVGL's formatter
   emits a bare `f` character, which is not present in the digits-only font and
   renders as a placeholder square. Format voltage as integers:

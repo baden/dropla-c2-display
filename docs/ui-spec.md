@@ -19,7 +19,7 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
         |              95%                 |  <- 36 px, colored by zone
         |                                  |
         |             58.2 V               |  <- 110 px Arial Bold + 55 px "V"
-        |                                  |
+        |  Searching for Starlink...       |  <- 16 px status line
         |   (CRSF)  (WIFI)  (STARLINK)     |  <- row 1 of status chips
         |   (LTE)    (VPN)   (GPS 14)      |  <- row 2
         |            634 km                |  <- odometer
@@ -76,7 +76,20 @@ States:
 | on | `#22C55E` | `#0A2A18` |
 | off | `#46566A` | `#0B1118` |
 
-### 2.5 Low battery alarm
+### 2.5 Status line
+
+A single line right under the voltage digits (`+20` px from the screen centre,
+16 px, colour `#8695A5`). The text is whatever the link layer puts into
+`telemetry.status` (max 47 characters); the firmware only renders it.
+
+Demo rotation (4 s per message):
+
+1. `Searching for Starlink network...`
+2. `Carrier connected`
+3. `Charging...`
+4. `VPN network not configured...`
+
+### 2.6 Low battery alarm
 
 When the state of charge drops **below 10 %**:
 
@@ -85,7 +98,7 @@ When the state of charge drops **below 10 %**:
   phase paints the text in the background colour, so nothing moves;
 - above 10 % the voltage is white again and the percentage uses its zone colour.
 
-### 2.6 Odometer
+### 2.7 Odometer
 
 Under the second chip row, centred (`+128` px from the screen centre):
 
@@ -109,6 +122,7 @@ Under the second chip row, centred (`+128` px from the screen centre):
 | `vpn_on` | bool | VPN tunnel |
 | `sats` | uint8 | visible GNSS satellites |
 | `odometer_km` | uint32 | total distance flown, km |
+| `status` | char[48] | status line text under the voltage (47 chars max) |
 | `uptime_ms` | uint32 | milliseconds since boot |
 
 The UI reads this structure only; it never writes to it (`telemetry_update()`
@@ -126,7 +140,8 @@ is called from the main loop at 10 Hz).
 - voltage derived from the percentage: 42.0 V ... 58.8 V (14S);
 - `CRSF` and `VPN` always on; `WIFI`, `STARLINK`, `LTE` blink with different periods;
 - satellites: 12 +- 4;
-- odometer: starts at 634 km, +1 km every 30 s.
+- odometer: starts at 634 km, +1 km every 30 s;
+- status line: cycles through the four demo messages, 4 s each.
 
 Set `C2_SIMULATE 0` when a real link fills `telemetry_t`.
 

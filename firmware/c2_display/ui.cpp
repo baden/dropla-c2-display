@@ -18,6 +18,7 @@ LV_FONT_DECLARE(font_unit);
 #define C_DIM        lv_color_hex(0x5B6B7C)
 #define C_UNIT       lv_color_hex(0x2B343E)  /* barely visible unit "V" */
 #define C_ODO        lv_color_hex(0x93A3B5)  /* odometer value */
+#define C_STATUS     lv_color_hex(0x8695A5)  /* status line under the voltage */
 #define C_RED        lv_color_hex(0xEF4444)
 #define C_AMBER      lv_color_hex(0xF59E0B)
 #define C_GREEN      lv_color_hex(0x22C55E)
@@ -41,6 +42,7 @@ static lv_obj_t *segs[RING_SEGMENTS];
 static lv_obj_t *lbl_volt;
 static lv_obj_t *lbl_unit;
 static lv_obj_t *lbl_pct;
+static lv_obj_t *lbl_status;
 static lv_obj_t *lbl_odo;
 static lv_obj_t *lbl_odo_unit;
 
@@ -129,6 +131,13 @@ static void build_center(lv_obj_t *parent)
     lv_label_set_text(unit, "V");
     lv_obj_align_to(unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 1, -1);
     lbl_unit = unit;
+
+    /* Status line right under the digits: text is pushed by the link layer. */
+    lbl_status = lv_label_create(parent);
+    lv_obj_set_style_text_font(lbl_status, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(lbl_status, C_STATUS, 0);
+    lv_label_set_text(lbl_status, "");
+    lv_obj_align(lbl_status, LV_ALIGN_CENTER, 0, 20);
 }
 
 static void build_chip(lv_obj_t *parent, int idx, int dx, int dy, int w)
@@ -268,6 +277,8 @@ void ui_update(void)
     lv_obj_set_style_text_color(lbl_pct, pct_c, 0);
     lv_obj_set_style_text_color(lbl_volt, volt_c, 0);
     lv_obj_set_style_text_color(lbl_unit, unit_c, 0);
+
+    lv_label_set_text(lbl_status, telem.status);
 
     set_chip(0, telem.rf_on);
     set_chip(1, telem.wifi_on);

@@ -87,7 +87,7 @@ When the state of charge drops **below 10 %**:
 
 ### 2.6 Odometer
 
-Under the second chip row, centred (`+124` px from the screen centre):
+Under the second chip row, centred (`+128` px from the screen centre):
 
 - value `634` in 24 px, colour `#93A3B5`;
 - unit `km` in 14 px, dim `#5B6B7C`, baselines aligned with the value;

@@ -53,8 +53,8 @@
     <text x="180" y="276" fill="#22C55E" font-family="Montserrat, Arial" font-size="16" text-anchor="middle">VPN</text>
     <rect x="226" y="255" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
     <text x="264" y="276" fill="#22C55E" font-family="Montserrat, Arial" font-size="16" text-anchor="middle">GPS 14</text>
-    <text x="190" y="312" fill="#93A3B5" font-family="Montserrat, Arial" font-size="24" text-anchor="end">634</text>
-    <text x="194" y="312" fill="#5B6B7C" font-family="Montserrat, Arial" font-size="14" text-anchor="start">km</text>
+    <text x="190" y="316" fill="#93A3B5" font-family="Montserrat, Arial" font-size="24" text-anchor="end">634</text>
+    <text x="194" y="316" fill="#5B6B7C" font-family="Montserrat, Arial" font-size="14" text-anchor="start">km</text>
   </g>
 </svg>
 

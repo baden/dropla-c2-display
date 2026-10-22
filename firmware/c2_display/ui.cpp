@@ -180,7 +180,7 @@ static void build_odometer(lv_obj_t *parent)
     lv_obj_t *row = lv_obj_create(parent);
     lv_obj_remove_style_all(row);
     lv_obj_set_size(row, 220, 30);
-    lv_obj_align(row, LV_ALIGN_CENTER, 0, 124);
+    lv_obj_align(row, LV_ALIGN_CENTER, 0, 128);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);

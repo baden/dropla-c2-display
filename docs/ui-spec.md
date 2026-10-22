@@ -30,8 +30,9 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
 - Large pack voltage, one decimal, e.g. `58.2`.
 - Font: Arial Bold 110 px subset (`0-9`, `.`), generated with `lv_font_conv`
   -> `firmware/c2_display/font_voltage.c`.
-- Unit: a grey `V` in half the size of the digits (Arial Bold 55 px, `font_unit.c`),
-  placed to the right of the number and aligned to the bottom edge of the digits.
+- Unit: a barely visible grey `V` (`#2B343E`) in half the size of the digits
+  (Arial Bold 55 px, `font_unit.c`), placed 1 px to the right of the number and
+  aligned to the bottom edge of the digits.
   The digits themselves stay exactly where they are (centred, `-38` px from the
   screen centre); the unit is re-glued after every text change because the width
   of the number varies.

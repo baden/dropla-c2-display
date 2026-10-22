@@ -16,6 +16,7 @@ LV_FONT_DECLARE(font_unit);
 #define C_BG         lv_color_hex(0x05070A)
 #define C_VOLT       lv_color_hex(0xF2F6FA)
 #define C_DIM        lv_color_hex(0x5B6B7C)
+#define C_UNIT       lv_color_hex(0x2B343E)  /* barely visible unit "V" */
 #define C_RED        lv_color_hex(0xEF4444)
 #define C_AMBER      lv_color_hex(0xF59E0B)
 #define C_GREEN      lv_color_hex(0x22C55E)
@@ -121,9 +122,9 @@ static void build_center(lv_obj_t *parent)
      * baseline on the digits' baseline. The digits themselves are untouched. */
     lv_obj_t *unit = lv_label_create(parent);
     lv_obj_set_style_text_font(unit, &font_unit, 0);
-    lv_obj_set_style_text_color(unit, C_DIM, 0);
+    lv_obj_set_style_text_color(unit, C_UNIT, 0);
     lv_label_set_text(unit, "V");
-    lv_obj_align_to(unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, -1);
+    lv_obj_align_to(unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 1, -1);
     lbl_unit = unit;
 }
 
@@ -213,13 +214,13 @@ void ui_update(void)
 
     /* The digits are centred and their width depends on the value, so the unit
      * is re-glued to their bottom-right corner after every text change. */
-    lv_obj_align_to(lbl_unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, -1);
+    lv_obj_align_to(lbl_unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 1, -1);
 
     /* Low battery alarm: below 10 % the voltage and the percentage blink red.
      * The "off" phase paints the text in the background colour, so nothing
      * moves and the layout stays stable. */
     lv_color_t volt_c = C_VOLT;
-    lv_color_t unit_c = C_DIM;
+    lv_color_t unit_c = C_UNIT;
     lv_color_t pct_c = zc;
     if (pct < LOW_BATTERY_PCT) {
         bool on = ((millis() / BLINK_HALF_MS) & 1) == 0;

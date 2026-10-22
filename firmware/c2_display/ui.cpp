@@ -46,7 +46,7 @@ static lv_obj_t *chips[CHIP_COUNT];
 static lv_obj_t *chip_text[CHIP_COUNT];
 
 static const char *const CHIP_NAMES[CHIP_COUNT] = {
-    "RF", "WIFI", "STARLINK", "LTE", "VPN", "GPS"
+    "CRSF", "WIFI", "STARLINK", "LTE", "VPN", "GPS"
 };
 
 static lv_color_t zone_color(uint8_t pct)
@@ -128,11 +128,11 @@ static void build_center(lv_obj_t *parent)
     lbl_unit = unit;
 }
 
-static void build_chip(lv_obj_t *parent, int idx, int dx, int dy)
+static void build_chip(lv_obj_t *parent, int idx, int dx, int dy, int w)
 {
     lv_obj_t *box = lv_obj_create(parent);
     lv_obj_remove_style_all(box);
-    lv_obj_set_size(box, 76, 30);
+    lv_obj_set_size(box, w, 30);
     lv_obj_align(box, LV_ALIGN_CENTER, dx, dy);
     lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(box, LV_OBJ_FLAG_CLICKABLE);
@@ -143,7 +143,7 @@ static void build_chip(lv_obj_t *parent, int idx, int dx, int dy)
     lv_obj_set_style_border_color(box, C_CHIP_OFF, 0);
 
     lv_obj_t *l = lv_label_create(box);
-    lv_obj_set_style_text_font(l, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(l, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(l, C_CHIP_OFF, 0);
     lv_label_set_text(l, CHIP_NAMES[idx]);
     lv_obj_center(l);
@@ -154,15 +154,21 @@ static void build_chip(lv_obj_t *parent, int idx, int dx, int dy)
 
 static void build_chips(lv_obj_t *parent)
 {
-    /* row 1: RF / WIFI / STARLINK, row 2: LTE / VPN / GPS */
-    const int dx = 84;
-    build_chip(parent, 0, -dx, 54);
-    build_chip(parent, 1, 0, 54);
-    build_chip(parent, 2, dx, 54);
+    /* Row 1 (CRSF / WIFI / STARLINK) is ~20 % wider than row 2 so the longer
+     * words keep comfortable margins; the row stays inside the ring:
+     * sqrt((dx + w/2 - 15)^2 + dy^2) + 15 < inner radius (159 px). */
+    const int w1 = 91;          /* 76 * 1.2 */
+    const int gap1 = 6;
+    const int dx1 = w1 + gap1;  /* distance between neighbouring centres */
+    build_chip(parent, 0, -dx1, 54, w1);
+    build_chip(parent, 1, 0, 54, w1);
+    build_chip(parent, 2, dx1, 54, w1);
 
-    build_chip(parent, 3, -dx, 90);
-    build_chip(parent, 4, 0, 90);
-    build_chip(parent, 5, dx, 90);
+    const int w2 = 76;
+    const int dx2 = 84;
+    build_chip(parent, 3, -dx2, 90, w2);
+    build_chip(parent, 4, 0, 90, w2);
+    build_chip(parent, 5, dx2, 90, w2);
 }
 
 /* ---------------- update helpers ---------------- */

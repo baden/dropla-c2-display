@@ -20,8 +20,8 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
         |                                  |
         |             58.2 V               |  <- 110 px Arial Bold + 55 px "V"
         |                                  |
-        |   (RF)   (WIFI)   (STARLINK)     |  <- row 1 of status chips
-        |   (LTE)  (VPN)    (GPS 14)       |  <- row 2
+        |   (CRSF)  (WIFI)  (STARLINK)     |  <- row 1 of status chips
+        |   (LTE)    (VPN)   (GPS 14)      |  <- row 2
         +--- 36-segment battery ring ------+
 ```
 
@@ -57,16 +57,16 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
 
 ### 2.4 Status chips
 
-Six chips, 2 rows x 3, each 76 x 30 px, radius 15, 14 px text:
+Six chips, 2 rows x 3, radius 15, 16 px text:
 
-| Row | Chip | Meaning |
-|---|---|---|
-| 1 | `RF` | radio control link is active |
-| 1 | `WIFI` | control over Wi-Fi is active (drone side - not the display's own Wi-Fi) |
-| 1 | `STARLINK` | Starlink link is up |
-| 2 | `LTE` | LTE link is up |
-| 2 | `VPN` | VPN tunnel is up |
-| 2 | `GPS` | shows satellite count when the drone sees any (`GPS 14`), otherwise just `GPS` |
+| Row | Size | Chip | Meaning |
+|---|---|---|---|
+| 1 | 91 x 30 (20 % wider, 6 px gaps) | `CRSF` | Crossfire radio control link is active |
+| 1 | | `WIFI` | control over Wi-Fi is active (drone side - not the display's own Wi-Fi) |
+| 1 | | `STARLINK` | Starlink link is up |
+| 2 | 76 x 30 (8 px gaps) | `LTE` | LTE link is up |
+| 2 | | `VPN` | VPN tunnel is up |
+| 2 | | `GPS` | shows satellite count when the drone sees any (`GPS 14`), otherwise just `GPS` |
 
 States:
 

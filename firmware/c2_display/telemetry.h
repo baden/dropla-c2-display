@@ -3,25 +3,26 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/** Телеметрия, которую показывает экран.
- *  Пока данные имитируются (C2_SIMULATE), позже сюда придут пакеты по Wi-Fi/MAVLink. */
+/**
+ * Data model of the remote status display.
+ *
+ * The screen is read-only: it shows the state of the drone link, it does not
+ * accept any input. Right now the values are produced by the simulator in
+ * telemetry.cpp; later they will be filled from the real link (Wi-Fi/MAVLink).
+ */
 typedef struct {
-    float alt_m;        /* высота, м */
-    float vario_ms;     /* вертикальная скорость, м/с */
-    float speed_ms;     /* горизонтальная скорость, м/с */
-    float heading_deg;  /* курс, 0..360 */
-    float vbat_v;       /* напряжение АКБ, В */
-    int8_t rssi_dbm;    /* уровень связи */
-    uint8_t sats;       /* спутники */
-    bool armed;         /* моторы разрешены */
-    bool link_ok;       /* есть связь с бортом */
+    float    voltage_v;    /* pack voltage, V (14S demo: 42.0 .. 58.8) */
+    uint8_t  batt_pct;     /* state of charge, 0..100 % */
+    bool     rf_on;        /* RC link (radio control) is active */
+    bool     wifi_on;      /* control over Wi-Fi is active (drone side) */
+    bool     starlink_on;  /* Starlink link is up */
+    bool     lte_on;       /* LTE link is up */
+    bool     vpn_on;       /* VPN tunnel is up */
+    uint8_t  sats;         /* GNSS satellites the drone sees */
     uint32_t uptime_ms;
 } telemetry_t;
 
 extern telemetry_t telem;
 
-/** Обновить модель данных (вызывать 10 Гц). */
+/** Refresh the model (call at ~10 Hz). */
 void telemetry_update(void);
-
-/** Переключить armed (по кнопке на экране). */
-void telemetry_toggle_armed(void);

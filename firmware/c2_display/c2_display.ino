@@ -1,10 +1,9 @@
 /*
- * c2_display — свой экран C2 для Waveshare ESP32-S3-Touch-LCD-1.85.
+ * c2_display — remote C2 status display for Waveshare ESP32-S3-Touch-LCD-1.85.
  *
- * Страница «полёт»: компас-кольцо, высота, варио, скорость, заряд, связь, ARM.
- * Страница «система»: IMU, RTC, напряжение АКБ, свободная память, аптайм.
- *
- * Данные пока имитируются в telemetry.cpp (C2_SIMULATE=1).
+ * Read-only panel (no touch input): pack voltage in the center, a segmented
+ * ring for the state of charge and six status chips (RF / WIFI / STARLINK /
+ * LTE / VPN / GPS). All values come from telemetry.cpp (simulator for now).
  */
 #include <Arduino.h>
 #include <lvgl.h>
@@ -12,9 +11,6 @@
 #include "I2C_Driver.h"
 #include "TCA9554PWR.h"
 #include "Display_ST77916.h"
-#include "Gyro_QMI8658.h"
-#include "RTC_PCF85063.h"
-#include "BAT_Driver.h"
 #include "PWR_Key.h"
 
 #include "lvgl_port.h"
@@ -25,14 +21,11 @@ void setup()
 {
     Serial.begin(115200);
     delay(200);
-    printf("\r\n=== c2_display ===\r\n");
+    printf("\r\n=== c2_display: remote status panel ===\r\n");
 
     PWR_Init();
     I2C_Init();
-    TCA9554PWR_Init(0x00);
-    BAT_Init();
-    PCF85063_Init();
-    QMI8658_Init();
+    TCA9554PWR_Init(0x00);      /* display/touch reset lines live on the expander */
     Backlight_Init();
 
     LCD_Init();
@@ -58,11 +51,10 @@ void loop()
 
     if (now - t_telem >= 100) {
         t_telem = now;
-        QMI8658_Loop();
         telemetry_update();
     }
 
-    if (now - t_ui >= 150) {
+    if (now - t_ui >= 100) {
         t_ui = now;
         ui_update();
     }

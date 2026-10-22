@@ -1,26 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
-  <defs>
-    <clipPath id="round"><circle cx="180" cy="180" r="180"/></clipPath>
-  </defs>
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
+  <defs><clipPath id="round"><circle cx="180" cy="180" r="180"/></clipPath></defs>
   <g clip-path="url(#round)">
-    <rect width="360" height="360" fill="#0A0E13"/>
-    <circle cx="180" cy="180" r="172" fill="none" stroke="#131A23" stroke-width="10"/>
-    <circle cx="180" cy="180" r="172" fill="none" stroke="#22D3EE" stroke-width="10"
-            stroke-linecap="round" stroke-dasharray="810 1080" transform="rotate(135 180 180)"/>
-    <text x="180" y="36" fill="#64748B" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">12:34:56</text>
-    <text x="180" y="56" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">LINK ●  9 SAT</text>
-    <text x="180" y="96" fill="#E6EDF3" font-family="Montserrat, Arial" font-size="20" text-anchor="middle">137°</text>
-    <text x="180" y="168" fill="#E6EDF3" font-family="Montserrat, Arial" font-size="48" text-anchor="middle">138</text>
-    <text x="180" y="194" fill="#64748B" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">ALT, м</text>
-    <text x="180" y="224" fill="#22C55E" font-family="Montserrat, Arial" font-size="18" text-anchor="middle">+1.4 м/с</text>
-    <text x="108" y="264" fill="#E6EDF3" font-family="Montserrat, Arial" font-size="24" text-anchor="middle">13.2</text>
-    <text x="252" y="264" fill="#E6EDF3" font-family="Montserrat, Arial" font-size="24" text-anchor="middle">87%</text>
-    <text x="108" y="284" fill="#64748B" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">м/с</text>
-    <text x="252" y="284" fill="#64748B" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">BAT</text>
-    <rect x="114" y="290" width="132" height="40" rx="20" fill="#131A23"/>
-    <text x="180" y="315" fill="#64748B" font-family="Montserrat, Arial" font-size="16" text-anchor="middle">ARM</text>
-    <rect x="253" y="47" width="46" height="26" rx="13" fill="#131A23"/>
-    <text x="276" y="64" fill="#64748B" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">SYS</text>
+    <rect width="360" height="360" fill="#05070A"/>
+    <line x1="182.9" y1="14.5" x2="205.9" y2="16.5" stroke="#22C55E" stroke-width="13"/>
+    <line x1="211.6" y1="17.5" x2="233.9" y2="23.5" stroke="#22C55E" stroke-width="13"/>
+    <line x1="239.3" y1="25.5" x2="260.2" y2="35.3" stroke="#22C55E" stroke-width="13"/>
+    <line x1="265.2" y1="38.1" x2="284.2" y2="51.4" stroke="#22C55E" stroke-width="13"/>
+    <line x1="288.6" y1="55.1" x2="304.9" y2="71.4" stroke="#22C55E" stroke-width="13"/>
+    <line x1="308.6" y1="75.8" x2="321.9" y2="94.8" stroke="#22C55E" stroke-width="13"/>
+    <line x1="324.7" y1="99.8" x2="334.5" y2="120.7" stroke="#22C55E" stroke-width="13"/>
+    <line x1="336.5" y1="126.1" x2="342.5" y2="148.4" stroke="#22C55E" stroke-width="13"/>
+    <line x1="343.5" y1="154.1" x2="345.5" y2="177.1" stroke="#22C55E" stroke-width="13"/>
+    <line x1="345.5" y1="182.9" x2="343.5" y2="205.9" stroke="#22C55E" stroke-width="13"/>
+    <line x1="342.5" y1="211.6" x2="336.5" y2="233.9" stroke="#22C55E" stroke-width="13"/>
+    <line x1="334.5" y1="239.3" x2="324.7" y2="260.2" stroke="#22C55E" stroke-width="13"/>
+    <line x1="321.9" y1="265.2" x2="308.6" y2="284.2" stroke="#22C55E" stroke-width="13"/>
+    <line x1="304.9" y1="288.6" x2="288.6" y2="304.9" stroke="#22C55E" stroke-width="13"/>
+    <line x1="284.2" y1="308.6" x2="265.2" y2="321.9" stroke="#22C55E" stroke-width="13"/>
+    <line x1="260.2" y1="324.7" x2="239.3" y2="334.5" stroke="#22C55E" stroke-width="13"/>
+    <line x1="233.9" y1="336.5" x2="211.6" y2="342.5" stroke="#22C55E" stroke-width="13"/>
+    <line x1="205.9" y1="343.5" x2="182.9" y2="345.5" stroke="#22C55E" stroke-width="13"/>
+    <line x1="177.1" y1="345.5" x2="154.1" y2="343.5" stroke="#22C55E" stroke-width="13"/>
+    <line x1="148.4" y1="342.5" x2="126.1" y2="336.5" stroke="#22C55E" stroke-width="13"/>
+    <line x1="120.7" y1="334.5" x2="99.8" y2="324.7" stroke="#22C55E" stroke-width="13"/>
+    <line x1="94.8" y1="321.9" x2="75.8" y2="308.6" stroke="#22C55E" stroke-width="13"/>
+    <line x1="71.4" y1="304.9" x2="55.1" y2="288.6" stroke="#22C55E" stroke-width="13"/>
+    <line x1="51.4" y1="284.2" x2="38.1" y2="265.2" stroke="#22C55E" stroke-width="13"/>
+    <line x1="35.3" y1="260.2" x2="25.5" y2="239.3" stroke="#22C55E" stroke-width="13"/>
+    <line x1="23.5" y1="233.9" x2="17.5" y2="211.6" stroke="#22C55E" stroke-width="13"/>
+    <line x1="16.5" y1="205.9" x2="14.5" y2="182.9" stroke="#22C55E" stroke-width="13"/>
+    <line x1="14.5" y1="177.1" x2="16.5" y2="154.1" stroke="#22C55E" stroke-width="13"/>
+    <line x1="17.5" y1="148.4" x2="23.5" y2="126.1" stroke="#22C55E" stroke-width="13"/>
+    <line x1="25.5" y1="120.7" x2="35.3" y2="99.8" stroke="#22C55E" stroke-width="13"/>
+    <line x1="38.1" y1="94.8" x2="51.4" y2="75.8" stroke="#22C55E" stroke-width="13"/>
+    <line x1="55.1" y1="71.4" x2="71.4" y2="55.1" stroke="#22C55E" stroke-width="13"/>
+    <line x1="75.8" y1="51.4" x2="94.8" y2="38.1" stroke="#22C55E" stroke-width="13"/>
+    <line x1="99.8" y1="35.3" x2="120.7" y2="25.5" stroke="#22C55E" stroke-width="13"/>
+    <line x1="126.1" y1="23.5" x2="148.4" y2="17.5" stroke="#1A2430" stroke-width="13"/>
+    <line x1="154.1" y1="16.5" x2="177.1" y2="14.5" stroke="#1A2430" stroke-width="13"/>
+    <text x="180" y="38" fill="#5B6B7C" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">BATTERY</text>
+    <text x="180" y="74" fill="#22C55E" font-family="Montserrat, Arial" font-size="28" font-weight="bold" text-anchor="middle">95%</text>
+    <text x="180" y="178" fill="#F2F6FA" font-family="Arial, Montserrat" font-size="110" font-weight="bold" text-anchor="middle">58.2</text>
+    <text x="180" y="202" fill="#5B6B7C" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">VOLTS</text>
+    <rect x="58" y="229" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="96" y="248" fill="#22C55E" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">RF</text>
+    <rect x="142" y="229" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="180" y="248" fill="#22C55E" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">WIFI</text>
+    <rect x="226" y="229" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="264" y="248" fill="#22C55E" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">STARLINK</text>
+    <rect x="58" y="265" width="76" height="30" rx="15" fill="#0B1118" stroke="#46566A"/>
+    <text x="96" y="284" fill="#46566A" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">LTE</text>
+    <rect x="142" y="265" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="180" y="284" fill="#22C55E" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">VPN</text>
+    <rect x="226" y="265" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="264" y="284" fill="#22C55E" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">GPS 14</text>
   </g>
-  <circle cx="180" cy="180" r="179" fill="none" stroke="#1E293B" stroke-width="2"/>
 </svg>
+

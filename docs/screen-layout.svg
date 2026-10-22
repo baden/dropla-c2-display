@@ -38,22 +38,21 @@
     <line x1="99.8" y1="35.3" x2="120.7" y2="25.5" stroke="#22C55E" stroke-width="13"/>
     <line x1="126.1" y1="23.5" x2="148.4" y2="17.5" stroke="#0D3A21" stroke-width="13"/>
     <line x1="154.1" y1="16.5" x2="177.1" y2="14.5" stroke="#0D3A21" stroke-width="13"/>
-    <text x="180" y="38" fill="#5B6B7C" font-family="Montserrat, Arial" font-size="12" text-anchor="middle">BATTERY</text>
     <text x="180" y="74" fill="#22C55E" font-family="Montserrat, Arial" font-size="28" font-weight="bold" text-anchor="middle">95%</text>
     <text x="180" y="178" fill="#F2F6FA" font-family="Arial, Montserrat" font-size="110" font-weight="bold" text-anchor="middle">58.2</text>
     <text x="180" y="204" fill="#5B6B7C" font-family="Montserrat, Arial" font-size="16" text-anchor="middle">VOLTS</text>
-    <rect x="58" y="229" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
-    <text x="96" y="249" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">RF</text>
-    <rect x="142" y="229" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
-    <text x="180" y="249" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">WIFI</text>
-    <rect x="226" y="229" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
-    <text x="264" y="249" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">STARLINK</text>
-    <rect x="58" y="265" width="76" height="30" rx="15" fill="#0B1118" stroke="#46566A"/>
-    <text x="96" y="285" fill="#46566A" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">LTE</text>
-    <rect x="142" y="265" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
-    <text x="180" y="285" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">VPN</text>
-    <rect x="226" y="265" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
-    <text x="264" y="285" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">GPS 14</text>
+    <rect x="58" y="219" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="96" y="239" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">RF</text>
+    <rect x="142" y="219" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="180" y="239" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">WIFI</text>
+    <rect x="226" y="219" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="264" y="239" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">STARLINK</text>
+    <rect x="58" y="255" width="76" height="30" rx="15" fill="#0B1118" stroke="#46566A"/>
+    <text x="96" y="275" fill="#46566A" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">LTE</text>
+    <rect x="142" y="255" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="180" y="275" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">VPN</text>
+    <rect x="226" y="255" width="76" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
+    <text x="264" y="275" fill="#22C55E" font-family="Montserrat, Arial" font-size="14" text-anchor="middle">GPS 14</text>
   </g>
 </svg>
 

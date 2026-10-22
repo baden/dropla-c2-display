@@ -97,12 +97,6 @@ static void build_ring(lv_obj_t *parent)
 
 static void build_center(lv_obj_t *parent)
 {
-    lv_obj_t *cap = lv_label_create(parent);
-    lv_obj_set_style_text_font(cap, &lv_font_montserrat_12, 0);
-    lv_obj_set_style_text_color(cap, C_DIM, 0);
-    lv_label_set_text(cap, "BATTERY");
-    lv_obj_align(cap, LV_ALIGN_CENTER, 0, -146);
-
     lbl_pct = lv_label_create(parent);
     lv_obj_set_style_text_font(lbl_pct, &lv_font_montserrat_28, 0);
     lv_obj_set_style_text_color(lbl_pct, C_GREEN, 0);
@@ -150,13 +144,13 @@ static void build_chips(lv_obj_t *parent)
 {
     /* row 1: RF / WIFI / STARLINK, row 2: LTE / VPN / GPS */
     const int dx = 84;
-    build_chip(parent, 0, -dx, 64);
-    build_chip(parent, 1, 0, 64);
-    build_chip(parent, 2, dx, 64);
+    build_chip(parent, 0, -dx, 54);
+    build_chip(parent, 1, 0, 54);
+    build_chip(parent, 2, dx, 54);
 
-    build_chip(parent, 3, -dx, 100);
-    build_chip(parent, 4, 0, 100);
-    build_chip(parent, 5, dx, 100);
+    build_chip(parent, 3, -dx, 90);
+    build_chip(parent, 4, 0, 90);
+    build_chip(parent, 5, dx, 90);
 }
 
 /* ---------------- update helpers ---------------- */

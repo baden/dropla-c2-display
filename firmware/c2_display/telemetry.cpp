@@ -24,7 +24,7 @@ telemetry_t telem = {
     .vpn_on = true,
     .sats = 14,
     .odometer_km = 634,
-    .status = "Searching for Starlink network...",
+    .status = "Starlink searching",
     .uptime_ms = 0,
 };
 
@@ -68,12 +68,13 @@ void telemetry_update(void)
     telem.odometer_km = 634u + (uint32_t)(t / 30.0f);
 
     /* Status line: the real link will push its own messages into telem.status,
-     * the demo just cycles through a few examples, 4 s each. */
+     * the demo just cycles through a few examples, 4 s each. Texts are kept
+     * short enough to fit at 32 px (<= 300 px); longer real messages scroll. */
     static const char *const DEMO_STATUS[] = {
-        "Searching for Starlink network...",
+        "Starlink searching",
         "Carrier connected",
         "Charging...",
-        "VPN network not configured...",
+        "VPN unavailable",
     };
     const int status_count = (int)(sizeof(DEMO_STATUS) / sizeof(DEMO_STATUS[0]));
     const char *msg = DEMO_STATUS[((int)(t / 4.0f)) % status_count];

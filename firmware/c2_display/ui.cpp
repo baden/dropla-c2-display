@@ -77,6 +77,28 @@ static lv_color_t dim_of(lv_color_t c)
     return lv_color_mix(c, C_BG, 70);
 }
 
+/* Largest width the status line may occupy without touching the ring. */
+#define STATUS_MAX_W 300
+
+/* Static text is centred; anything wider than the free space above the chips
+ * scrolls around, so no message ever gets clipped. */
+static void set_status_text(const char *txt)
+{
+    lv_point_t sz;
+    lv_txt_get_size(&sz, txt, &lv_font_montserrat_32, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+
+    if (sz.x > STATUS_MAX_W) {
+        lv_obj_set_width(lbl_status, STATUS_MAX_W);
+        lv_label_set_long_mode(lbl_status, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    } else {
+        lv_obj_set_width(lbl_status, LV_SIZE_CONTENT);
+        lv_label_set_long_mode(lbl_status, LV_LABEL_LONG_CLIP);
+    }
+
+    lv_label_set_text(lbl_status, txt);
+    lv_obj_align(lbl_status, LV_ALIGN_CENTER, 0, 18);
+}
+
 /* ---------------- construction ---------------- */
 
 static void build_ring(lv_obj_t *parent)
@@ -132,12 +154,15 @@ static void build_center(lv_obj_t *parent)
     lv_obj_align_to(unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 1, -1);
     lbl_unit = unit;
 
-    /* Status line right under the digits: text is pushed by the link layer. */
+    /* Status line right under the digits: text is pushed by the link layer.
+     * Long messages scroll (LV_LABEL_LONG_SCROLL_CIRCULAR), short ones are
+     * simply centred - see set_status_text(). */
     lbl_status = lv_label_create(parent);
-    lv_obj_set_style_text_font(lbl_status, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(lbl_status, &lv_font_montserrat_32, 0);
     lv_obj_set_style_text_color(lbl_status, C_STATUS, 0);
+    lv_label_set_long_mode(lbl_status, LV_LABEL_LONG_CLIP);
     lv_label_set_text(lbl_status, "");
-    lv_obj_align(lbl_status, LV_ALIGN_CENTER, 0, 20);
+    lv_obj_align(lbl_status, LV_ALIGN_CENTER, 0, 18);
 }
 
 static void build_chip(lv_obj_t *parent, int idx, int dx, int dy, int w)
@@ -278,8 +303,7 @@ void ui_update(void)
     lv_obj_set_style_text_color(lbl_volt, volt_c, 0);
     lv_obj_set_style_text_color(lbl_unit, unit_c, 0);
 
-    lv_label_set_text(lbl_status, telem.status);
-
+    set_status_text(telem.status);
     set_chip(0, telem.rf_on);
     set_chip(1, telem.wifi_on);
     set_chip(2, telem.starlink_on);

@@ -41,7 +41,7 @@
     <text x="180" y="77" fill="#22C55E" font-family="Montserrat, Arial" font-size="36" font-weight="bold" text-anchor="middle">95%</text>
     <text x="180" y="178" fill="#F2F6FA" font-family="Arial, Montserrat" font-size="110" font-weight="bold" text-anchor="middle">58.2</text>
     <text x="288" y="178" fill="#2B343E" font-family="Arial, Montserrat" font-size="55" font-weight="bold" text-anchor="start">V</text>
-    <text x="180" y="205" fill="#8695A5" font-family="Montserrat, Arial" font-size="16" text-anchor="middle">Searching for Starlink network...</text>
+    <text x="180" y="209" fill="#8695A5" font-family="Montserrat, Arial" font-size="32" text-anchor="middle">Starlink searching</text>
     <rect x="37" y="219" width="91" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>
     <text x="83" y="240" fill="#22C55E" font-family="Montserrat, Arial" font-size="16" text-anchor="middle">CRSF</text>
     <rect x="134" y="219" width="91" height="30" rx="15" fill="#0A2A18" stroke="#22C55E"/>

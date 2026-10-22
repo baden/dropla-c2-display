@@ -19,7 +19,7 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
         |              95%                 |  <- 36 px, colored by zone
         |                                  |
         |             58.2 V               |  <- 110 px Arial Bold + 55 px "V"
-        |  Searching for Starlink...       |  <- 16 px status line
+        |  Starlink searching           |  <- 32 px status line
         |   (CRSF)  (WIFI)  (STARLINK)     |  <- row 1 of status chips
         |   (LTE)    (VPN)   (GPS 14)      |  <- row 2
         |            634 km                |  <- odometer
@@ -78,16 +78,22 @@ States:
 
 ### 2.5 Status line
 
-A single line right under the voltage digits (`+20` px from the screen centre,
-16 px, colour `#8695A5`). The text is whatever the link layer puts into
-`telemetry.status` (max 47 characters); the firmware only renders it.
+A single line right under the voltage digits: 32 px, colour `#8695A5`,
+centred at `+18` px from the screen centre. The text is whatever the link layer
+puts into `telemetry.status` (max 47 characters); the firmware only renders it.
 
-Demo rotation (4 s per message):
+- messages up to **300 px** wide are shown statically, centred;
+- anything wider automatically switches to `LV_LABEL_LONG_SCROLL_CIRCULAR`
+  (circular marquee inside a 300 px window), so long messages are never clipped.
 
-1. `Searching for Starlink network...`
+Demo rotation (4 s per message, all of them fit at 32 px):
+
+1. `Starlink searching`
 2. `Carrier connected`
 3. `Charging...`
-4. `VPN network not configured...`
+4. `VPN unavailable`
+
+Measured widths at 32 px: 294 / 295 / 173 / 267 px.
 
 ### 2.6 Low battery alarm
 
@@ -141,7 +147,8 @@ is called from the main loop at 10 Hz).
 - `CRSF` and `VPN` always on; `WIFI`, `STARLINK`, `LTE` blink with different periods;
 - satellites: 12 +- 4;
 - odometer: starts at 634 km, +1 km every 30 s;
-- status line: cycles through the four demo messages, 4 s each.
+- status line: cycles through four short demo messages, 4 s each
+  (`Starlink searching`, `Carrier connected`, `Charging...`, `VPN unavailable`).
 
 Set `C2_SIMULATE 0` when a real link fills `telemetry_t`.
 

@@ -19,10 +19,10 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
         |              95%                 |  <- 36 px, colored by zone
         |                                  |
         |             58.2 V               |  <- 110 px Arial Bold + 55 px "V"
-        |  Starlink searching           |  <- 32 px status line
+        |        Starlink searching        |  <- 32 px status line
         |   (CRSF)  (WIFI)  (STARLINK)     |  <- row 1 of status chips
         |   (LTE)    (VPN)   (GPS 14)      |  <- row 2
-        |            634 km                |  <- odometer
+        |              641 km              |  <- odometer (km/mi)
         +--- 36-segment battery ring ------+
 ```
 
@@ -106,12 +106,16 @@ When the state of charge drops **below 10 %**:
 
 ### 2.7 Odometer
 
-Under the second chip row, centred (`+128` px from the screen centre):
+Under the second chip row, centred (`+126` px from the screen centre):
 
-- value `634` in 24 px, colour `#93A3B5`;
-- unit `km` in 14 px, dim `#5B6B7C`, baselines aligned with the value;
+- value `641` in 32 px (same size as the status line), colour `#93A3B5`;
+- unit `km` / `mi` in 18 px, dim `#5B6B7C`, baselines aligned with the value
+  (`pad_bottom = 2`, because the 32 px font has `base_line` 6 and the 18 px
+  font has `base_line` 4);
 - the pair is laid out in a centred flex row, so it stays centred when the
-  number grows (`999` -> `1000`).
+  number grows (`999` -> `1000`);
+- **the unit alternates every 5 s**: kilometres for 5 s, miles for 5 s, looping
+  (`mi = round(km * 0.621371)`).
 
 ## 3. Data model
 
@@ -146,7 +150,8 @@ is called from the main loop at 10 Hz).
 - voltage derived from the percentage: 42.0 V ... 58.8 V (14S);
 - `CRSF` and `VPN` always on; `WIFI`, `STARLINK`, `LTE` blink with different periods;
 - satellites: 12 +- 4;
-- odometer: starts at 634 km, +1 km every 30 s;
+- odometer: starts at 634 km, +1 km every 30 s; the UI itself flips the unit
+  (`km` <-> `mi`) every 5 s;
 - status line: cycles through four short demo messages, 4 s each
   (`Starlink searching`, `Carrier connected`, `Charging...`, `VPN unavailable`).
 

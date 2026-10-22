@@ -208,13 +208,14 @@ static void build_chips(lv_obj_t *parent)
     build_chip(parent, 5, dx2, 90, w2);
 }
 
-/* Odometer under the second chip row: value 24 px, unit 14 px, baselines aligned. */
+/* Odometer under the second chip row: value 32 px, unit 18 px, baselines aligned.
+ * Alternates between km and miles every 5 s (see ui_update). */
 static void build_odometer(lv_obj_t *parent)
 {
     lv_obj_t *row = lv_obj_create(parent);
     lv_obj_remove_style_all(row);
-    lv_obj_set_size(row, 220, 30);
-    lv_obj_align(row, LV_ALIGN_CENTER, 0, 128);
+    lv_obj_set_size(row, 220, 36);
+    lv_obj_align(row, LV_ALIGN_CENTER, 0, 126);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
@@ -222,14 +223,14 @@ static void build_odometer(lv_obj_t *parent)
     lv_obj_set_style_pad_column(row, 4, 0);
 
     lbl_odo = lv_label_create(row);
-    lv_obj_set_style_text_font(lbl_odo, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_font(lbl_odo, &lv_font_montserrat_32, 0);
     lv_obj_set_style_text_color(lbl_odo, C_ODO, 0);
     lv_label_set_text(lbl_odo, "0");
 
     lbl_odo_unit = lv_label_create(row);
-    lv_obj_set_style_text_font(lbl_odo_unit, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(lbl_odo_unit, &lv_font_montserrat_18, 0);
     lv_obj_set_style_text_color(lbl_odo_unit, C_DIM, 0);
-    /* 24 px font has base_line 5, 14 px font has 3: +2 px padding lines the
+    /* 32 px font has base_line 6, 18 px font has 4: +2 px padding lines the
      * baselines up when both boxes are aligned to the bottom. */
     lv_obj_set_style_pad_bottom(lbl_odo_unit, 2, 0);
     lv_label_set_text(lbl_odo_unit, "km");
@@ -314,5 +315,13 @@ void ui_update(void)
     set_chip(5, gps);
     lv_label_set_text_fmt(chip_text[5], gps ? "GPS %d" : "GPS", telem.sats);
 
-    lv_label_set_text_fmt(lbl_odo, "%u", (unsigned)telem.odometer_km);
+    /* Odometer alternates between kilometres and miles every 5 s. */
+    if ((millis() / 5000u) & 1u) {
+        unsigned mi = (unsigned)((telem.odometer_km * 621371ULL + 500000ULL) / 1000000ULL);
+        lv_label_set_text_fmt(lbl_odo, "%u", mi);
+        lv_label_set_text(lbl_odo_unit, "mi");
+    } else {
+        lv_label_set_text_fmt(lbl_odo, "%u", (unsigned)telem.odometer_km);
+        lv_label_set_text(lbl_odo_unit, "km");
+    }
 }

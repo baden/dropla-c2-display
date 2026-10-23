@@ -433,6 +433,11 @@ void ui_init(void)
     boot_start();
 }
 
+bool ui_boot_done(void)
+{
+    return !boot_active;
+}
+
 void ui_update(void)
 {
     if (boot_active) return;

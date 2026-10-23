@@ -16,6 +16,7 @@
 #include "lvgl_port.h"
 #include "telemetry.h"
 #include "ui.h"
+#include "audio_beep.h"
 
 void setup()
 {
@@ -32,6 +33,7 @@ void setup()
     LCD_Init();
     lvgl_port_init();
     ui_init();
+    beep_init();                /* PCM5101 + speaker: short beeps, no SD card needed */
 
     /* First frame = black screen with the ring at 0 %, no placeholders yet.
      * Only then do we switch the backlight on, so the uninitialised panel
@@ -52,6 +54,8 @@ void loop()
 {
     static uint32_t t_telem = 0;
     static uint32_t t_ui = 0;
+    static uint32_t t_beep = 0;
+    static int beep_stage = 0;   /* 0 = waiting for the boot animation, 1 = first beep played, 2 = done */
 
     lv_timer_handler();
 
@@ -65,6 +69,19 @@ void loop()
     if (now - t_ui >= 100) {
         t_ui = now;
         ui_update();
+    }
+
+    /* Sound check right after the boot animation: one "peep", then a double
+     * "peep-peep" three seconds later. Played once, no repeat. */
+    if (beep_stage == 0 && ui_boot_done()) {
+        beep_stage = 1;
+        t_beep = now;
+        beep_single();
+        printf("beep: single\r\n");
+    } else if (beep_stage == 1 && (now - t_beep >= 3000u)) {
+        beep_stage = 2;
+        beep_double();
+        printf("beep: double\r\n");
     }
 
     PWR_Loop();

@@ -159,6 +159,7 @@ firmware/
 tools/build.ps1        сборка + заливка (arduino-cli из Arduino IDE)
 docs/ui-spec.md        ТЗ и раскладка экрана
 docs/board-notes.md    распиновка, грабли, пояснения
+docs/link-protocol.md  предложение по протоколу связи (USB / UART / BLE / Wi-Fi)
 ```
 
 ## Как это работает

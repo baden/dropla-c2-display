@@ -4,6 +4,7 @@
 #include <lvgl.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "telemetry.h"
 
@@ -32,6 +33,9 @@ LV_FONT_DECLARE(font_unit);
 #define LOW_BATTERY_PCT 10   /* % at which the readout starts blinking red */
 #define BLINK_HALF_MS   500  /* half period: 500 ms on, 500 ms off */
 
+/* A notification with the C2_NOTIFY_AUTOHIDE flag disappears after this long. */
+#define NOTIFY_HIDE_MS  5000
+
 /* ---------------- ring ---------------- */
 #define RING_SEGMENTS 36
 #define RING_SIZE     344
@@ -46,6 +50,11 @@ static lv_obj_t *lbl_status;
 static lv_obj_t *lbl_odo;
 static lv_obj_t *lbl_odo_unit;
 static lv_obj_t *odo_row;
+
+/* What is currently written in the status line (avoids re-measuring the text
+ * on every 100 ms update). */
+static uint32_t notify_shown_seq = 0xFFFFFFFFu;
+static char notify_shown_text[C2_NOTIFY_LEN];
 
 #define CHIP_COUNT 6
 static lv_obj_t *chips[CHIP_COUNT];
@@ -210,7 +219,7 @@ static void build_chips(lv_obj_t *parent)
 }
 
 /* Odometer under the second chip row: value 32 px, unit 18 px, baselines aligned.
- * Alternates between km and miles every 5 s (see ui_update). */
+ * The unit (km/mi) comes from the CONFIG frame, see ui_update(). */
 static void build_odometer(lv_obj_t *parent)
 {
     lv_obj_t *row = lv_obj_create(parent);
@@ -241,6 +250,17 @@ static void build_odometer(lv_obj_t *parent)
 
 /* ---------------- update helpers ---------------- */
 
+/* debug = dim grey, info = grey-blue, warning = amber, error = red */
+static lv_color_t notify_color(uint8_t sev)
+{
+    switch (sev & C2_NOTIFY_SEV_MASK) {
+    case 0:  return C_DIM;
+    case 2:  return C_AMBER;
+    case 3:  return C_RED;
+    default: return C_STATUS;
+    }
+}
+
 static void set_chip(int idx, bool on)
 {
     lv_obj_set_style_bg_color(chips[idx], on ? C_CHIP_ON_BG : C_CHIP_BG, 0);
@@ -267,7 +287,8 @@ static void ring_paint(uint8_t pct)
  * "on" state), the odometer. The fade is a colour mix towards the background:
  * object opacity is avoided on purpose, because LVGL renders a semi-transparent
  * object into a temporary layer whose untouched pixels show up as white boxes.
- * At BOOT_END_MS everything jumps to the real telemetry and the demo starts.
+ * At BOOT_END_MS everything jumps to the live values (placeholders while no
+ * telemetry has been received yet).
  * Total ~2.7 s.
  */
 #define BOOT_RING_MS     1000
@@ -442,58 +463,117 @@ void ui_update(void)
 {
     if (boot_active) return;
 
+    /* valid = we have seen at least one telemetry frame; fresh = the last one
+     * is recent enough to be trusted (see telemetry_fresh()). */
+    bool valid = telem.valid;
+    bool fresh = telemetry_fresh();
+
     uint8_t pct = telem.batt_pct;
-    if (pct > 100) pct = 100;
+    /* 255 = "charge unknown": no percentage and an empty ring, not a full one. */
+    uint8_t ring_pct = (valid && pct <= 100) ? pct : 0;
 
-    lv_color_t zc = zone_color(pct);
+    /* ---- ring ---- */
+    ring_paint(ring_pct);
 
-    ring_paint(pct);
+    /* ---- percentage ---- */
+    if (valid && pct <= 100) {
+        lv_obj_clear_flag(lbl_pct, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text_fmt(lbl_pct, "%d%%", pct);
+    } else {
+        lv_obj_add_flag(lbl_pct, LV_OBJ_FLAG_HIDDEN);
+    }
 
-    lv_label_set_text_fmt(lbl_pct, "%d%%", pct);
-
-    /* lroundf + integer formatting: LVGL's formatter on this core does not
-     * handle "%f" (produces a bare 'f'), so avoid float specifiers entirely. */
-    int tenths = (int)lroundf(telem.voltage_v * 10.0f);
-    lv_label_set_text_fmt(lbl_volt, "%d.%d", tenths / 10, tenths % 10);
+    /* ---- voltage ---- */
+    if (valid) {
+        /* Integer formatting only: LVGL's formatter on this core cannot do
+         * "%f" (it prints a bare 'f' which the digit font has no glyph for). */
+        int tenths = (telem.voltage_cv + 5) / 10;
+        lv_label_set_text_fmt(lbl_volt, "%d.%d", tenths / 10, tenths % 10);
+    } else {
+        lv_label_set_text(lbl_volt, "--.-");
+    }
 
     /* The digits are centred and their width depends on the value, so the unit
      * is re-glued to their bottom-right corner after every text change. */
     lv_obj_align_to(lbl_unit, lbl_volt, LV_ALIGN_OUT_RIGHT_BOTTOM, 1, -1);
 
-    /* Low battery alarm: below 10 % the voltage and the percentage blink red.
-     * The "off" phase paints the text in the background colour, so nothing
-     * moves and the layout stays stable. */
-    lv_color_t volt_c = C_VOLT;
-    lv_color_t unit_c = C_UNIT;
-    lv_color_t pct_c = zc;
-    if (pct < LOW_BATTERY_PCT) {
+    /* Colours: no data / stale data is dim, low battery blinks red. The "off"
+     * phase paints the text in the background colour, so nothing moves. */
+    lv_color_t volt_c = valid ? (fresh ? C_VOLT : C_DIM) : C_DIM;
+    lv_color_t unit_c = valid ? (fresh ? C_UNIT : C_DIM) : C_DIM;
+    lv_color_t pct_c = (valid && fresh && pct <= 100) ? zone_color(pct)
+                                                    : (valid ? C_DIM : C_STATUS);
+
+    if (fresh && pct <= 100 && pct < LOW_BATTERY_PCT) {
         bool on = ((millis() / BLINK_HALF_MS) & 1) == 0;
         volt_c = on ? C_RED : C_BG;
         unit_c = on ? C_RED : C_BG;
         pct_c = on ? C_RED : C_BG;
     }
+
     lv_obj_set_style_text_color(lbl_pct, pct_c, 0);
     lv_obj_set_style_text_color(lbl_volt, volt_c, 0);
     lv_obj_set_style_text_color(lbl_unit, unit_c, 0);
 
-    set_status_text(telem.status);
-    set_chip(0, telem.rf_on);
-    set_chip(1, telem.wifi_on);
-    set_chip(2, telem.starlink_on);
-    set_chip(3, telem.lte_on);
-    set_chip(4, telem.vpn_on);
+    /* ---- status chips ---- */
+    bool gps = fresh && ((telem.flags & C2_LINK_GPS_FIX) || telem.sats > 0);
 
-    bool gps = telem.sats > 0;
+    set_chip(0, fresh && (telem.flags & C2_LINK_CRSF));
+    set_chip(1, fresh && (telem.flags & C2_LINK_WIFI));
+    set_chip(2, fresh && (telem.flags & C2_LINK_STARLINK));
+    set_chip(3, fresh && (telem.flags & C2_LINK_LTE));
+    set_chip(4, fresh && (telem.flags & C2_LINK_VPN));
     set_chip(5, gps);
-    lv_label_set_text_fmt(chip_text[5], gps ? "GPS %d" : "GPS", telem.sats);
+    lv_label_set_text_fmt(chip_text[5], (gps && telem.sats > 0) ? "GPS %d" : "GPS", telem.sats);
 
-    /* Odometer alternates between kilometres and miles every 5 s. */
-    if ((millis() / 5000u) & 1u) {
-        unsigned mi = (unsigned)((telem.odometer_km * 621371ULL + 500000ULL) / 1000000ULL);
-        lv_label_set_text_fmt(lbl_odo, "%u", mi);
-        lv_label_set_text(lbl_odo_unit, "mi");
-    } else {
-        lv_label_set_text_fmt(lbl_odo, "%u", (unsigned)telem.odometer_km);
-        lv_label_set_text(lbl_odo_unit, "km");
+    /* ---- status line: notification first, then link health ---- */
+    uint32_t nseq = telem.notify_seq;
+    if (nseq != 0 && (telem.notify_flags & C2_NOTIFY_AUTOHIDE) &&
+        (millis() - telem.notify_ms >= NOTIFY_HIDE_MS)) {
+        nseq = 0;   /* expired: behave as if it was cleared */
     }
+
+    const char *line = "";
+    lv_color_t line_c = C_STATUS;
+    bool is_notify = false;
+
+    if (nseq != 0 && telem.notify[0] != '\0') {
+        line = telem.notify;
+        line_c = notify_color(telem.notify_sev);
+        is_notify = true;
+    } else if (valid && !fresh) {
+        line = "Link lost";
+        line_c = C_AMBER;
+    }
+
+    if (nseq != notify_shown_seq || strcmp(line, notify_shown_text) != 0) {
+        notify_shown_seq = nseq;
+        snprintf(notify_shown_text, sizeof(notify_shown_text), "%s", line);
+        set_status_text(line);
+    }
+
+    /* "Toasts" blink while they are shown; colour goes to the background so the
+     * text keeps its position and width. */
+    if (is_notify && (telem.notify_flags & C2_NOTIFY_BLINK) &&
+        ((millis() / BLINK_HALF_MS) & 1)) {
+        line_c = C_BG;
+    }
+    lv_obj_set_style_text_color(lbl_status, line_c, 0);
+
+    /* ---- odometer ---- */
+    if (valid) {
+        if (telem.odometer_unit == C2_ODO_MI) {
+            unsigned mi = (unsigned)((telem.odometer_dm * 621371ULL + 5000000000ULL) / 10000000000ULL);
+            lv_label_set_text_fmt(lbl_odo, "%u", mi);
+            lv_label_set_text(lbl_odo_unit, "mi");
+        } else {
+            unsigned km = (unsigned)((telem.odometer_dm + 5000ULL) / 10000ULL);
+            lv_label_set_text_fmt(lbl_odo, "%u", km);
+            lv_label_set_text(lbl_odo_unit, "km");
+        }
+    } else {
+        lv_label_set_text(lbl_odo, "--");
+        lv_label_set_text(lbl_odo_unit, telem.odometer_unit == C2_ODO_MI ? "mi" : "km");
+    }
+    lv_obj_set_style_text_color(lbl_odo, fresh ? C_ODO : C_DIM, 0);
 }

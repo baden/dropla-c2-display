@@ -3,7 +3,8 @@
  *
  * Read-only panel (no touch input): pack voltage in the center, a segmented
  * ring for the state of charge and six status chips (RF / WIFI / STARLINK /
- * LTE / VPN / GPS). All values come from telemetry.cpp (simulator for now).
+ * LTE / VPN / GPS). All values come from link.cpp (USB CDC); until the first
+ * frame arrives the panel shows dashes.
  */
 #include <Arduino.h>
 #include <lvgl.h>
@@ -17,6 +18,7 @@
 #include "telemetry.h"
 #include "ui.h"
 #include "audio_beep.h"
+#include "link.h"
 
 void setup()
 {
@@ -45,6 +47,8 @@ void setup()
     telemetry_update();
     ui_update();
 
+    link_init();
+
     printf("ready: internal free %u KB, psram free %u KB\r\n",
            (unsigned)(ESP.getFreeHeap() / 1024),
            (unsigned)(ESP.getFreePsram() / 1024));
@@ -58,6 +62,7 @@ void loop()
     static int beep_stage = 0;   /* 0 = waiting for the boot animation, 1 = first beep played, 2 = done */
 
     lv_timer_handler();
+    link_poll();                /* parse USB CDC frames as they arrive */
 
     uint32_t now = millis();
 

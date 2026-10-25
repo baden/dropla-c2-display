@@ -29,8 +29,10 @@ Read-only status panel for drone C2 based on Waveshare ESP32-S3-Touch-LCD-1.85
 ### 2.1 Center - voltage
 
 - Large pack voltage, one decimal, e.g. `58.2`.
-- Font: Arial Bold 110 px subset (`0-9`, `.`), generated with `lv_font_conv`
-  -> `firmware/c2_display/font_voltage.c`.
+- Font: Arial Bold 110 px subset (`0-9`, `.` and `-` for the no-data placeholder),
+  generated with `lv_font_conv` -> `firmware/c2_display/font_voltage.c`.
+- Until the first telemetry frame the value is the placeholder `--.-` in the dim
+  colour `#5B6B7C` (the `-` glyph exists only for this state).
 - Unit: a barely visible grey `V` (`#2B343E`) in half the size of the digits
   (Arial Bold 55 px, `font_unit.c`), placed 1 px to the right of the number and
   aligned to the bottom edge of the digits.
@@ -78,22 +80,30 @@ States:
 
 ### 2.5 Status line
 
-A single line right under the voltage digits: 32 px, colour `#8695A5`,
-centred at `+18` px from the screen centre. The text is whatever the link layer
-puts into `telemetry.status` (max 47 characters); the firmware only renders it.
+A single line right under the voltage digits: 32 px, centred at `+18` px from the
+screen centre. The text comes from a **NOTIFY** frame of the link (see
+`docs/link-protocol.md`); the firmware only renders it.
 
 - messages up to **300 px** wide are shown statically, centred;
 - anything wider automatically switches to `LV_LABEL_LONG_SCROLL_CIRCULAR`
-  (circular marquee inside a 300 px window), so long messages are never clipped.
+  (circular marquee inside a 300 px window), so long messages are never clipped;
+- the label buffer is 64 bytes (63 visible characters + `\0`).
 
-Demo rotation (4 s per message, all of them fit at 32 px):
+Message flags (from the frame):
 
-1. `Starlink searching`
-2. `Carrier connected`
-3. `Charging...`
-4. `VPN unavailable`
+| Flag | Effect |
+|---|---|
+| severity `debug` | dim grey `#5B6B7C` |
+| severity `info` | grey-blue `#8695A5` |
+| severity `warning` | amber `#F59E0B` |
+| severity `error` | red `#EF4444` |
+| `flashing` | text blinks continuously, 1 s period (off phase = background colour, layout stays put) |
+| `hide after 5 seconds` | the message disappears 5 s after it arrived |
+| empty text | clears the line immediately |
 
-Measured widths at 32 px: 294 / 295 / 173 / 267 px.
+A new message replaces the previous one and restarts its timers. If the link has
+timed out and no message is active, the line shows `Link lost` in amber; a message
+always wins over that fallback. Before the first frame the line is empty.
 
 ### 2.6 Low battery alarm
 
@@ -114,8 +124,12 @@ Under the second chip row, centred (`+126` px from the screen centre):
   font has `base_line` 4);
 - the pair is laid out in a centred flex row, so it stays centred when the
   number grows (`999` -> `1000`);
-- **the unit alternates every 5 s**: kilometres for 5 s, miles for 5 s, looping
-  (`mi = round(km * 0.621371)`).
+- **the unit comes from the CONFIG frame** (`0` = km, `1` = mi). It is sent once
+  at startup and again whenever the setting changes; kilometres are the default
+  until the first CONFIG arrives;
+- miles are derived from the stored decimetres: `mi = round(dm * 0.621371 / 10000)`;
+- before the first telemetry frame the value is the placeholder `--` (dim), the
+  unit stays visible.
 
 ### 2.8 Boot animation
 
@@ -129,7 +143,7 @@ On power-up the panel plays a ~2.7 s self-test, then switches to live data:
 | 1450 ms | status line shows `System check` |
 | 1550 ms + 90 ms each | six chips fade in one by one, all in the green "on" state |
 | 2300 ms | odometer fades in (`0 km`) |
-| 2700 ms | everything jumps to the real telemetry, the demo starts |
+| 2700 ms | everything jumps to the real telemetry (or to the `--` placeholders if no frame has arrived yet) |
 
 During the animation `ui_update()` is gated by `boot_active`, so nothing
 overwrites the placeholders; the ring is driven by a separate `lv_anim`
@@ -149,50 +163,65 @@ the duration of the init.
 
 ## 3. Data model
 
-`telemetry.h` -> `telemetry_t`:
+`telemetry.h` -> `telemetry_t`, filled by `link.cpp` from received frames:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `voltage_v` | float | pack voltage, V (14S demo: 42.0 ... 58.8) |
-| `batt_pct` | uint8 | state of charge, 0...100 |
-| `rf_on` | bool | RC link |
-| `wifi_on` | bool | Wi-Fi control link |
-| `starlink_on` | bool | Starlink link |
-| `lte_on` | bool | LTE link |
-| `vpn_on` | bool | VPN tunnel |
+| `valid` | bool | at least one TELEMETRY frame received |
+| `voltage_cv` | uint16 | pack voltage, centivolts (`5820` = 58.20 V) |
+| `batt_pct` | uint8 | state of charge 0...100, `255` = unknown (percentage hidden) |
+| `flags` | uint8 | `C2_LINK_*` bitfield (CRSF, WIFI, STARLINK, LTE, VPN, GPS_FIX) |
 | `sats` | uint8 | visible GNSS satellites |
-| `odometer_km` | uint32 | total distance flown, km |
-| `status` | char[48] | status line text under the voltage (47 chars max) |
-| `uptime_ms` | uint32 | milliseconds since boot |
+| `odometer_dm` | uint32 | total distance flown, decimetres (`6 340 000` = 634 km) |
+| `last_rx_ms` | uint32 | `millis()` of the last valid telemetry frame |
+| `notify[64]` | char | current notification text, `""` = none |
+| `notify_sev` | uint8 | 0 debug, 1 info, 2 warning, 3 error |
+| `notify_flags` | uint8 | `C2_NOTIFY_BLINK`, `C2_NOTIFY_AUTOHIDE` |
+| `notify_seq` | uint32 | increments on every NOTIFY frame (0 = none yet) |
+| `notify_ms` | uint32 | when the notification arrived |
+| `cfg_valid` | bool | at least one CONFIG frame received |
+| `odometer_unit` | uint8 | `C2_ODO_KM` (0) or `C2_ODO_MI` (1) |
+| `uptime_ms`, `rx_frames`, `rx_errors` | uint32 | housekeeping, also used by PONG |
 
-The UI reads this structure only; it never writes to it (`telemetry_update()`
-is called from the main loop at 10 Hz).
+Bit assignments live next to the struct (`C2_LINK_CRSF` = `0x01` ...
+`C2_LINK_GPS_FIX` = `0x20`, severity mask `0x03`). The UI only reads this structure;
+`telemetry_update()` refreshes `uptime_ms` at 10 Hz, `telemetry_fresh()` answers
+"was the last telemetry frame recent enough" (10 s window).
 
-## 4. Simulator (temporary)
+## 4. Link and the "no data" state
 
-`C2_SIMULATE 1` in `telemetry.cpp`:
+`link.cpp` receives frames from USB CDC: a byte-wise state machine
+(`A5 5A` -> header -> payload -> CRC16), a dispatcher for TELEMETRY / NOTIFY /
+CONFIG / PING and a PONG sender. `link_poll()` is called from `loop()` on every
+iteration; the frame format is documented in `docs/link-protocol.md`.
 
-- battery: 70 s per cycle, so the low-battery alarm is easy to check:
-  - `0...20 s` 95 -> 45 % (green ring),
-  - `20...40 s` 45 -> 15 % (green -> amber),
-  - `40...60 s` 15 -> 5 % (amber -> red),
-  - `60...70 s` held at 5 % (blinking red digits);
-- voltage derived from the percentage: 42.0 V ... 58.8 V (14S);
-- `CRSF` and `VPN` always on; `WIFI`, `STARLINK`, `LTE` blink with different periods;
-- satellites: 12 +- 4;
-- odometer: starts at 634 km, +1 km every 30 s; the UI itself flips the unit
-  (`km` <-> `mi`) every 5 s;
-- status line: cycles through four short demo messages, 4 s each
-  (`Starlink searching`, `Carrier connected`, `Charging...`, `VPN unavailable`).
+Until the first TELEMETRY frame the panel shows a neutral "no data" state:
 
-Set `C2_SIMULATE 0` when a real link fills `telemetry_t`.
+- voltage `--.-` (dim `#5B6B7C`), no percentage at all (the label is hidden);
+- ring empty, every chip grey, `GPS` without a count;
+- odometer `--` with the configured unit (`km` until CONFIG says otherwise);
+- empty status line.
+
+If telemetry stops for **10 s** (`LINK_TIMEOUT_MS`), the chips go grey, the values
+and the ring stay on screen but dim, and the status line shows `Link lost` in amber
+(unless a notification is active). Frames coming back restore everything without a
+reboot and without replaying the boot animation.
+
+There is **no simulator** in the firmware any more. To exercise the panel from a PC
+use the test client (Protocol is in `docs/link-protocol.md` §8):
+
+```powershell
+py tools/c2link.py --port COM4 demo
+py tools/c2link.py --port COM4 notify "Carrier weak" --severity warning --blink
+```
 
 ## 5. Implementation notes
 
 - Custom fonts are generated once:
-  `npx lv_font_conv --font arialbd.ttf --range 0x30-0x39 --range 0x2E --size 110 --bpp 4 --format lvgl -o font_voltage.c`
-  `npx lv_font_conv --font arialbd.ttf --range 0x56 --size 55 --bpp 4 --format lvgl -o font_unit.c`
-  (only the glyphs that are actually used, so the bitmap tables stay small).
+  `npx lv_font_conv --font arialbd.ttf --range 0x2D --range 0x2E --range 0x30-0x39 --size 110 --bpp 4 --format lvgl --no-compress -o font_voltage.c`
+  `npx lv_font_conv --font arialbd.ttf --range 0x56 --size 55 --bpp 4 --format lvgl --no-compress -o font_unit.c`
+  (`-` is only needed for the `--.-` placeholder; only the glyphs that are
+  actually used, so the bitmap tables stay small).
 - **Never use `%f` in `lv_label_set_text_fmt()` on this core** - LVGL's formatter
   emits a bare `f` character, which is not present in the digits-only font and
   renders as a placeholder square. Format voltage as integers:

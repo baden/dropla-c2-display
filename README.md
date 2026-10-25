@@ -257,6 +257,7 @@ py tools/c2link.py --port COM4 sound sequence --tones "800:120:60,1200:160:0"
 | `img_lvgl_logo: undefined reference` в демо | в `lv_conf.h` нужен `LV_USE_DEMO_WIDGETS 1` (демо тянет ассеты виджетов) |
 | `SD card initialization failed` | SD-карты нет — это нормально, демо продолжает работу |
 | Порт не появляется | кабель только с зарядкой / нет драйвера USB-Serial-JTAG; кнопка BOOT + RESET |
+| Панель перезагружается при каждом запуске клиента (`rst:0x15 USB_UART_CHIP_RESET`) | DTR/RTS дёргается при открытии порта — для USB-Serial/JTAG это команда сброса. В `c2link.py` это учтено: на Windows линии выставляются до `open()`, на Linux не трогаются вообще. В своём коде не меняйте DTR/RTS после открытия |
 
 ## Что дальше
 

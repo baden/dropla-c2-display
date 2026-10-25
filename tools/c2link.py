@@ -20,6 +20,7 @@ Requires pyserial (`py -m pip install pyserial`).
 """
 
 import argparse
+import os
 import struct
 import sys
 import time
@@ -137,11 +138,17 @@ def open_port(name: str, baud: int) -> "serial.Serial":
     ser.write_timeout = 2
     ser.dsrdtr = False
     ser.rtscts = False
-    # Set both lines *before* opening: pyserial applies the stored state while
-    # configuring the port, so DTR/RTS are never asserted. Asserting them makes
-    # the ESP32-S3 USB-Serial/JTAG reboot (and can drop it into download mode).
-    ser.dtr = False
-    ser.rts = False
+
+    if os.name == "nt":
+        # Windows: pyserial applies both states together with the DCB at open,
+        # so pre-setting them low never produces a DTR/RTS pulse.
+        ser.dtr = False
+        ser.rts = False
+    # POSIX: do NOT touch DTR/RTS. The tty layer raises both when the port is
+    # opened, and the ESP32-S3 ignores that; but clearing them afterwards makes
+    # pyserial toggle DTR and RTS in two separate ioctls, and the intermediate
+    # combination is exactly the reset sequence of the USB-Serial/JTAG
+    # peripheral -> the board reboots with rst:0x15 (USB_UART_CHIP_RESET).
     ser.open()
     return ser
 

@@ -12,6 +12,8 @@ Examples (Windows: `py tools/c2link.py ...`, Linux: `python3 ...`):
     py tools/c2link.py --port COM4 notify                    # clear the line
     py tools/c2link.py --port COM4 config --odo mi
     py tools/c2link.py --port COM4 ping
+    py tools/c2link.py --port COM4 sound double
+    py tools/c2link.py --port COM4 sound sequence --tones "800:120:60,1200:160:0"
     py tools/c2link.py --port COM4 demo                      # live demo stream
 
 Requires pyserial (`py -m pip install pyserial`).
@@ -34,6 +36,7 @@ MSG_TELEMETRY = 0x1
 MSG_NOTIFY = 0x2
 MSG_CONFIG = 0x3
 MSG_PING = 0x4
+MSG_SOUND = 0x5
 MSG_PONG = 0x8
 
 CHANNELS = {
@@ -48,6 +51,18 @@ CHANNELS = {
 SEVERITY = {"debug": 0, "info": 1, "warning": 2, "error": 3}
 NOTIFY_BLINK = 0x04
 NOTIFY_AUTOHIDE = 0x08
+
+# Sound kinds; 0x10 is a custom tone sequence, the rest are display presets.
+SOUND_KINDS = {
+    "single": 0x00,        # one short peep
+    "double": 0x01,        # peep - pause - peep
+    "triple": 0x02,        # peep - peep - peep
+    "long": 0x03,          # one long tone
+    "charge-start": 0x20,  # charger connected: two rising tones
+    "charge-done": 0x21,   # charging finished: three rising tones
+}
+SOUND_SEQUENCE = 0x10
+SOUND_MAX_TONES = 8
 
 _seq = 0
 
@@ -100,6 +115,18 @@ def config_frame(odo_unit: str = "km", extra: bytes = b"") -> bytes:
 
 def ping_frame() -> bytes:
     return frame(MSG_PING, b"")
+
+
+def sound_frame(kind: int, tones=None) -> bytes:
+    """kind 0x10 = tone sequence: list of (freq_hz, on_ms, off_ms)."""
+    if kind == SOUND_SEQUENCE:
+        if not tones:
+            raise ValueError("a tone sequence needs at least one tone")
+        payload = bytes([kind, 0x00, len(tones)])
+        for freq, on_ms, off_ms in tones:
+            payload += struct.pack("<HHH", freq, on_ms, off_ms)
+        return frame(MSG_SOUND, payload)
+    return frame(MSG_SOUND, bytes([kind, 0x00]))
 
 
 def open_port(name: str, baud: int) -> "serial.Serial":
@@ -160,6 +187,33 @@ def cmd_notify(ser, args):
 def cmd_config(ser, args):
     ser.write(config_frame(args.odo))
     print(f"sent config odo_unit={args.odo}")
+
+
+def parse_tones(spec: str):
+    tones = []
+    for item in spec.replace(" ", "").split(","):
+        if not item:
+            continue
+        parts = item.split(":")
+        if len(parts) != 3:
+            sys.exit(f"bad tone {item!r}, expected freq:on_ms:off_ms")
+        tones.append(tuple(int(x) for x in parts))
+    return tones
+
+
+def cmd_sound(ser, args):
+    if args.name == "sequence":
+        tones = parse_tones(args.tones)
+        if not tones:
+            sys.exit("--tones is required for 'sequence', e.g. 800:120:60,1200:160:0")
+        if len(tones) > SOUND_MAX_TONES:
+            sys.exit(f"at most {SOUND_MAX_TONES} tones")
+        ser.write(sound_frame(SOUND_SEQUENCE, tones))
+        print(f"sent tone sequence: {tones}")
+        return
+
+    ser.write(sound_frame(SOUND_KINDS[args.name]))
+    print(f"sent sound {args.name} (kind 0x{SOUND_KINDS[args.name]:02X})")
 
 
 def cmd_ping(ser, args):
@@ -231,6 +285,11 @@ def cmd_demo(ser, args):
                 text, sev, blink, hide = notifications[notify_idx % len(notifications)]
                 notify_idx += 1
                 ser.write(notify_frame(text, sev, blink, hide))
+                if text and not args.no_sound:
+                    # info -> single, warning -> double, error -> triple
+                    ser.write(sound_frame(SOUND_KINDS[{"info": "single",
+                                                       "warning": "double",
+                                                       "error": "triple"}[sev]]))
 
             if time.time() - last_log > 0.2:
                 last_log = time.time()
@@ -269,10 +328,17 @@ def main():
     p = sub.add_parser("ping", help="ping the display and print its pong")
     p.set_defaults(func=cmd_ping)
 
+    p = sub.add_parser("sound", help="play a sound signal on the display")
+    p.add_argument("name", choices=list(SOUND_KINDS) + ["sequence"])
+    p.add_argument("--tones", default="",
+                   help='custom sequence "freq:on_ms:off_ms,..." (name=sequence, max 8)')
+    p.set_defaults(func=cmd_sound)
+
     p = sub.add_parser("demo", help="stream a continuous demo")
     p.add_argument("--period", type=float, default=2.0, help="seconds between telemetry frames")
     p.add_argument("--odo", choices=["km", "mi"], default="km")
     p.add_argument("--duration", type=float, default=0.0, help="stop after N seconds (0 = forever)")
+    p.add_argument("--no-sound", action="store_true", help="do not beep on notifications")
     p.set_defaults(func=cmd_demo)
 
     args = ap.parse_args()

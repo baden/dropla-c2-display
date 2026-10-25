@@ -17,20 +17,19 @@
 #define BEEP_PIN_DOUT  47
 
 #define BEEP_RATE    44100
-#define BEEP_FREQ_HZ 1000
 #define BEEP_AMP     14000    /* ~43 % of full scale, the knob does the rest */
-#define BEEP_LEN_MS  120
-#define BEEP_GAP_MS  90
+#define BEEP_LEN_MS  120      /* default length of one "peep" */
+#define BEEP_GAP_MS  90       /* default pause inside a double/triple signal */
 
-enum {
-    BEEP_CMD_SINGLE = 1,
-    BEEP_CMD_DOUBLE = 2,
-};
+#define BEEP_FREQ_MIN 100
+#define BEEP_FREQ_MAX 8000
+#define BEEP_ON_MIN   20
+#define BEEP_ON_MAX   2000
+#define BEEP_OFF_MAX  2000
 
 static i2s_chan_handle_t tx_chan;
 static QueueHandle_t beep_q;
 
-/* Write `cnt` stereo frames of a 1 kHz sine (or silence) to the DAC. */
 static void write_frames(const int16_t *frames, int cnt)
 {
     size_t written = 0;
@@ -38,13 +37,18 @@ static void write_frames(const int16_t *frames, int cnt)
                       &written, portMAX_DELAY);
 }
 
-static void tone(uint32_t ms)
+static void tone(uint16_t freq_hz, uint16_t ms)
 {
     int16_t buf[256 * 2];
 
+    if (freq_hz < BEEP_FREQ_MIN) freq_hz = BEEP_FREQ_MIN;
+    if (freq_hz > BEEP_FREQ_MAX) freq_hz = BEEP_FREQ_MAX;
+    if (ms < BEEP_ON_MIN) ms = BEEP_ON_MIN;
+    if (ms > BEEP_ON_MAX) ms = BEEP_ON_MAX;
+
     const int total = (int)((uint64_t)BEEP_RATE * ms / 1000u);
     const int ramp = BEEP_RATE / 200;   /* 5 ms fade in/out: no click at the edges */
-    const float w = 2.0f * (float)M_PI * (float)BEEP_FREQ_HZ / (float)BEEP_RATE;
+    const float w = 2.0f * (float)M_PI * (float)freq_hz / (float)BEEP_RATE;
 
     for (int n = 0; n < total; n += 256) {
         int cnt = (total - n < 256) ? (total - n) : 256;
@@ -80,20 +84,27 @@ static void silence(uint32_t ms)
 
 static void beep_task(void *)
 {
-    uint8_t cmd;
+    beep_pattern_t p;
 
     for (;;) {
-        if (xQueueReceive(beep_q, &cmd, portMAX_DELAY) != pdTRUE) {
+        if (xQueueReceive(beep_q, &p, portMAX_DELAY) != pdTRUE) {
             continue;
         }
 
-        if (cmd == BEEP_CMD_DOUBLE) {
-            tone(BEEP_LEN_MS);
-            silence(BEEP_GAP_MS);
-            tone(BEEP_LEN_MS);
-        } else {
-            tone(BEEP_LEN_MS);
+        if (p.count > BEEP_MAX_TONES) {
+            p.count = BEEP_MAX_TONES;
         }
+
+        for (uint8_t i = 0; i < p.count; i++) {
+            tone(p.tone[i].freq_hz, p.tone[i].on_ms);
+
+            uint16_t off = p.tone[i].off_ms;
+            if (off > BEEP_OFF_MAX) off = BEEP_OFF_MAX;
+            if (off) {
+                silence(off);
+            }
+        }
+
         silence(40);   /* let the tail play out, then leave the DAC quiet */
     }
 }
@@ -117,22 +128,75 @@ void beep_init(void)
     ESP_ERROR_CHECK(i2s_channel_init_std_mode(tx_chan, &std_cfg));
     ESP_ERROR_CHECK(i2s_channel_enable(tx_chan));
 
-    beep_q = xQueueCreate(4, sizeof(uint8_t));
+    beep_q = xQueueCreate(4, sizeof(beep_pattern_t));
     xTaskCreate(beep_task, "beep", 3072, NULL, 3, NULL);
 }
 
-void beep_single(void)
+bool beep_play(const beep_pattern_t *pattern)
 {
-    uint8_t cmd = BEEP_CMD_SINGLE;
-    if (beep_q) {
-        xQueueSend(beep_q, &cmd, 0);
+    if (!beep_q || !pattern || pattern->count == 0) {
+        return false;
     }
+    return xQueueSend(beep_q, pattern, 0) == pdTRUE;
 }
 
-void beep_double(void)
+/* ---------------- ready-made patterns ---------------- */
+
+static beep_pattern_t pattern_single(void)
 {
-    uint8_t cmd = BEEP_CMD_DOUBLE;
-    if (beep_q) {
-        xQueueSend(beep_q, &cmd, 0);
-    }
+    beep_pattern_t p = {};
+    p.count = 1;
+    p.tone[0] = {1000, BEEP_LEN_MS, 0};
+    return p;
+}
+
+static beep_pattern_t pattern_double(void)
+{
+    beep_pattern_t p = {};
+    p.count = 2;
+    p.tone[0] = {1000, BEEP_LEN_MS, BEEP_GAP_MS};
+    p.tone[1] = {1000, BEEP_LEN_MS, 0};
+    return p;
+}
+
+static beep_pattern_t pattern_triple(void)
+{
+    beep_pattern_t p = {};
+    p.count = 3;
+    p.tone[0] = {1000, BEEP_LEN_MS, BEEP_GAP_MS};
+    p.tone[1] = {1000, BEEP_LEN_MS, BEEP_GAP_MS};
+    p.tone[2] = {1000, BEEP_LEN_MS, 0};
+    return p;
+}
+
+static beep_pattern_t pattern_long(void)
+{
+    beep_pattern_t p = {};
+    p.count = 1;
+    p.tone[0] = {1000, 600, 0};
+    return p;
+}
+
+bool beep_single(void)
+{
+    beep_pattern_t p = pattern_single();
+    return beep_play(&p);
+}
+
+bool beep_double(void)
+{
+    beep_pattern_t p = pattern_double();
+    return beep_play(&p);
+}
+
+bool beep_triple(void)
+{
+    beep_pattern_t p = pattern_triple();
+    return beep_play(&p);
+}
+
+bool beep_long(void)
+{
+    beep_pattern_t p = pattern_long();
+    return beep_play(&p);
 }

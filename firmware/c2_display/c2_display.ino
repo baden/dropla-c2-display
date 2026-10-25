@@ -58,8 +58,6 @@ void loop()
 {
     static uint32_t t_telem = 0;
     static uint32_t t_ui = 0;
-    static uint32_t t_beep = 0;
-    static int beep_stage = 0;   /* 0 = waiting for the boot animation, 1 = first beep played, 2 = done */
 
     lv_timer_handler();
     link_poll();                /* parse USB CDC frames as they arrive */
@@ -74,19 +72,6 @@ void loop()
     if (now - t_ui >= 100) {
         t_ui = now;
         ui_update();
-    }
-
-    /* Sound check right after the boot animation: one "peep", then a double
-     * "peep-peep" three seconds later. Played once, no repeat. */
-    if (beep_stage == 0 && ui_boot_done()) {
-        beep_stage = 1;
-        t_beep = now;
-        beep_single();
-        printf("beep: single\r\n");
-    } else if (beep_stage == 1 && (now - t_beep >= 3000u)) {
-        beep_stage = 2;
-        beep_double();
-        printf("beep: double\r\n");
     }
 
     PWR_Loop();

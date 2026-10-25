@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "audio_beep.h"
 #include "telemetry.h"
 
 /* ---------------- frame format ----------------
@@ -20,7 +21,17 @@
 #define MSG_NOTIFY    0x2
 #define MSG_CONFIG    0x3
 #define MSG_PING      0x4
+#define MSG_SOUND     0x5
 #define MSG_PONG      0x8
+
+/* SOUND kinds (see docs/link-protocol.md §5.5) */
+#define SND_SINGLE       0x00   /* one short peep                                  */
+#define SND_DOUBLE       0x01   /* peep - pause - peep                             */
+#define SND_TRIPLE       0x02   /* peep - peep - peep                              */
+#define SND_LONG         0x03   /* one long tone                                   */
+#define SND_SEQUENCE     0x10   /* custom tones: count, then count x (Hz, on, off) */
+#define SND_CHARGE_START 0x20   /* charger connected: two rising tones             */
+#define SND_CHARGE_DONE  0x21   /* charging finished: three rising tones           */
 
 /* CONFIG tags (TLV) */
 #define CFG_TAG_ODO_UNIT 0x01
@@ -194,6 +205,96 @@ static void on_config(const uint8_t *p, uint16_t len)
     printf("link: config odo_unit=%u\r\n", telem.odometer_unit);
 }
 
+static void on_sound(const uint8_t *p, uint16_t len)
+{
+    if (len < 2) {
+        telem.rx_errors++;
+        return;
+    }
+
+    uint8_t kind = p[0];
+    /* p[1] = flags: reserved for now (e.g. "replace what is playing"), must be 0 */
+
+    beep_pattern_t pat = {};
+
+    switch (kind) {
+    case SND_SINGLE:
+        pat.count = 1;
+        pat.tone[0] = {1000, 120, 0};
+        break;
+
+    case SND_DOUBLE:
+        pat.count = 2;
+        pat.tone[0] = {1000, 120, 90};
+        pat.tone[1] = {1000, 120, 0};
+        break;
+
+    case SND_TRIPLE:
+        pat.count = 3;
+        pat.tone[0] = {1000, 120, 90};
+        pat.tone[1] = {1000, 120, 90};
+        pat.tone[2] = {1000, 120, 0};
+        break;
+
+    case SND_LONG:
+        pat.count = 1;
+        pat.tone[0] = {1000, 600, 0};
+        break;
+
+    case SND_SEQUENCE: {
+        if (len < 3) {
+            telem.rx_errors++;
+            return;
+        }
+
+        uint8_t n = p[2];
+        if (n == 0) {
+            return;
+        }
+        if (n > BEEP_MAX_TONES) {
+            n = BEEP_MAX_TONES;         /* extra tones are ignored, the rest is played */
+        }
+        if ((uint16_t)(3 + n * 6) > len) {
+            telem.rx_errors++;          /* truncated tone list */
+            return;
+        }
+
+        pat.count = n;
+        for (uint8_t i = 0; i < n; i++) {
+            const uint8_t *t = p + 3 + i * 6;
+            pat.tone[i].freq_hz = (uint16_t)(t[0] | ((uint16_t)t[1] << 8));
+            pat.tone[i].on_ms = (uint16_t)(t[2] | ((uint16_t)t[3] << 8));
+            pat.tone[i].off_ms = (uint16_t)(t[4] | ((uint16_t)t[5] << 8));
+        }
+        break;
+    }
+
+    case SND_CHARGE_START:      /* charger connected */
+        pat.count = 2;
+        pat.tone[0] = {800, 120, 60};
+        pat.tone[1] = {1200, 160, 0};
+        break;
+
+    case SND_CHARGE_DONE:       /* charging finished */
+        pat.count = 3;
+        pat.tone[0] = {1000, 140, 70};
+        pat.tone[1] = {1300, 140, 70};
+        pat.tone[2] = {1600, 180, 0};
+        break;
+
+    default:
+        printf("link: sound kind=0x%02X unknown, ignored\r\n", kind);
+        return;
+    }
+
+    if (!beep_play(&pat)) {
+        printf("link: sound kind=0x%02X dropped (queue full)\r\n", kind);
+        return;
+    }
+
+    printf("link: sound kind=0x%02X tones=%u\r\n", kind, pat.count);
+}
+
 static void handle_frame(uint8_t ver_type, uint8_t seq, const uint8_t *p, uint16_t len)
 {
     uint8_t ver = ver_type >> 4;
@@ -207,6 +308,7 @@ static void handle_frame(uint8_t ver_type, uint8_t seq, const uint8_t *p, uint16
     case MSG_TELEMETRY: on_telemetry(p, len); break;
     case MSG_NOTIFY:    on_notify(p, len); break;
     case MSG_CONFIG:    on_config(p, len); break;
+    case MSG_SOUND:     on_sound(p, len); break;
     case MSG_PING:      send_pong(seq); break;
     default:            telem.rx_errors++; break;
     }

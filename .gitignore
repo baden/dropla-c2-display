@@ -16,3 +16,8 @@ ESP32-S3-Touch-LCD-1.85-Demo.zip
 *.swp
 Thumbs.db
 desktop.ini
+
+# Python и Rust
+__pycache__/
+target/
+

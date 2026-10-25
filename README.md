@@ -175,6 +175,20 @@ py tools/c2link.py --port COM4 sound sequence --tones "800:120:60,1200:160:0"
 Логи самой панели клиент печатает с префиксом `[dev]` — по ним видно, что кадры
 дошли (`link: first telemetry`, `link: notify ...`, `link: config odo_unit=...`).
 
+### Основной софт на Rust
+
+- руководство по интеграции — [`docs/integration-rust.md`](docs/integration-rust.md):
+  порт, DTR/RTS, формат кадра, все сообщения, поведение экрана, архитектура
+  клиента, сборка под aarch64, диагностика;
+- готовый крейт — [`tools/rust-c2link`](tools/rust-c2link): библиотека `c2link`,
+  демо-бинарник и юнит-тесты на «золотые» кадры (проверен на i.MX95).
+
+```bash
+cd tools/rust-c2link
+cargo test
+cargo run --bin c2link-demo -- /dev/ttyACM0 30
+```
+
 ## Структура
 
 ```
@@ -197,9 +211,11 @@ firmware/
   partitions-16mb.csv  app 6 МБ / model 3.9 МБ / ffat 6 МБ
 tools/build.ps1        сборка + заливка (arduino-cli из Arduino IDE)
 tools/c2link.py        тестовый клиент протокола (телеметрия/уведомления/конфиг)
+tools/rust-c2link/     клиент на Rust: библиотека, демо, тесты (для основного ПО)
 docs/ui-spec.md        ТЗ и раскладка экрана
 docs/board-notes.md    распиновка, грабли, пояснения
 docs/link-protocol.md  протокол связи (USB CDC сейчас, UART/BLE — дальше)
+docs/integration-rust.md  руководство по интеграции: клиент на Rust
 ```
 
 ## Как это работает

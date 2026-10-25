@@ -1,0 +1,19 @@
+[package]
+name = "c2link"
+version = "0.1.0"
+edition = "2021"
+description = "Host-side driver for the c2_display C2 panel (USB CDC, protocol v1)"
+license = "MIT"
+
+[lib]
+name = "c2link"
+path = "src/lib.rs"
+
+[[bin]]
+name = "c2link-demo"
+path = "src/main.rs"
+
+[dependencies]
+# libudev is only needed for serialport::available_ports(); opening a port by
+# name works without it, which keeps the crate buildable on minimal Yocto images.
+serialport = { version = "4.7", default-features = false }

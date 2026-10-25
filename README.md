@@ -149,7 +149,7 @@ arduino-cli upload  -b $fqbn -p COM4 --input-dir .build\c2_display
 | `0x1` TELEMETRY | напряжение, заряд, флаги каналов, спутники, одометр (фиксированные 9 байт) |
 | `0x2` NOTIFY | текст в строку статуса: важность, мигание, автоскрытие через 5 с; пустая строка — очистить |
 | `0x3` CONFIG | настройки отображения (пока — `km`/`mi` для одометра), TLV с запасом на будущее |
-| `0x4` PING → `0x81` PONG | проверка связи: uptime, число принятых кадров |
+| `0x4` PING → `0x8` PONG | проверка связи: uptime, число принятых кадров |
 
 Стенд с ПК — `tools/c2link.py` (Python 3 + `pyserial`):
 
@@ -163,7 +163,7 @@ py tools/c2link.py --port COM4 demo
 py tools/c2link.py --port COM4 telemetry --voltage 58.2 --pct 95 --odo 634 `
                    --channels crsf,wifi,starlink,vpn --sats 14
 py tools/c2link.py --port COM4 notify "Starlink searching" --severity info --hide
-py tools/c2link.py --port COM4 notify ""            # очистить строку
+py tools/c2link.py --port COM4 notify                # очистить строку
 py tools/c2link.py --port COM4 config --odo mi
 py tools/c2link.py --port COM4 ping
 ```

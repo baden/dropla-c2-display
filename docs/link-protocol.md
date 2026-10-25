@@ -111,7 +111,7 @@ Little-endian, без выравнивания, максимум 64 байта p
 | `0x2` NOTIFY | устройство → дисплей | текстовое уведомление в строке статуса, по необходимости |
 | `0x3` CONFIG | устройство → дисплей | настройки отображения (пока — единицы одометра) |
 | `0x4` PING | устройство → дисплей | проверка связи |
-| `0x81` PONG | дисплей → устройство | версия, uptime, число принятых кадров, `seq` запроса |
+| `0x8` PONG | дисплей → устройство | версия, uptime, число принятых кадров, `seq` запроса |
 
 Тип `0x2` раньше в черновике назывался `TEXT`, `0x3` — `HELLO`; `HELLO` убран,
 его роль выполняет `CONFIG`.
@@ -176,7 +176,7 @@ Little-endian, без выравнивания, максимум 64 байта p
 - шлётся один раз при старте и заново при изменении настроек;
 - до первого CONFIG одометр считается в километрах.
 
-### 5.4 PING (0x4) / PONG (0x81)
+### 5.4 PING (0x4) / PONG (0x8)
 
 PING — пустой payload. Дисплей отвечает PONG, payload 10 байт:
 
@@ -268,7 +268,7 @@ py tools/c2link.py --port COM4 telemetry --voltage 58.2 --pct 95 --odo 634 `
                    --channels crsf,wifi,starlink,vpn --sats 14
 py tools/c2link.py --port COM4 notify "Starlink searching" --severity info --hide
 py tools/c2link.py --port COM4 notify "VPN down" --severity error --blink
-py tools/c2link.py --port COM4 notify ""              # очистить строку
+py tools/c2link.py --port COM4 notify                # очистить строку
 py tools/c2link.py --port COM4 config --odo mi
 py tools/c2link.py --port COM4 ping
 ```

@@ -20,7 +20,7 @@
 #define MSG_NOTIFY    0x2
 #define MSG_CONFIG    0x3
 #define MSG_PING      0x4
-#define MSG_PONG      0x81
+#define MSG_PONG      0x8
 
 /* CONFIG tags (TLV) */
 #define CFG_TAG_ODO_UNIT 0x01
@@ -284,6 +284,7 @@ void link_init(void)
 {
     st = ST_MAGIC1;
     tx_seq = 0;
+    link_ok = telemetry_fresh();   /* no data yet, so it starts as "not ok" */
     printf("link: USB CDC ready (115200 8N1, baud is nominal for USB)\r\n");
 }
 

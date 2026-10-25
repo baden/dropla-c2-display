@@ -9,7 +9,7 @@ Examples (Windows: `py tools/c2link.py ...`, Linux: `python3 ...`):
 
     py tools/c2link.py --port COM4 telemetry --voltage 58.2 --pct 95 --sats 14 --odo 634
     py tools/c2link.py --port COM4 notify "Starlink searching" --severity info --hide
-    py tools/c2link.py --port COM4 notify ""                 # clear the line
+    py tools/c2link.py --port COM4 notify                    # clear the line
     py tools/c2link.py --port COM4 config --odo mi
     py tools/c2link.py --port COM4 ping
     py tools/c2link.py --port COM4 demo                      # live demo stream
@@ -34,7 +34,7 @@ MSG_TELEMETRY = 0x1
 MSG_NOTIFY = 0x2
 MSG_CONFIG = 0x3
 MSG_PING = 0x4
-MSG_PONG = 0x81
+MSG_PONG = 0x8
 
 CHANNELS = {
     "crsf": 0x01,
@@ -110,13 +110,12 @@ def open_port(name: str, baud: int) -> "serial.Serial":
     ser.write_timeout = 2
     ser.dsrdtr = False
     ser.rtscts = False
+    # Set both lines *before* opening: pyserial applies the stored state while
+    # configuring the port, so DTR/RTS are never asserted. Asserting them makes
+    # the ESP32-S3 USB-Serial/JTAG reboot (and can drop it into download mode).
+    ser.dtr = False
+    ser.rts = False
     ser.open()
-    try:
-        # Never hold the S3 in reset / download mode.
-        ser.dtr = False
-        ser.rts = False
-    except Exception:
-        pass
     return ser
 
 
@@ -195,12 +194,17 @@ def cmd_demo(ser, args):
     ]
 
     t0 = time.time()
-    last_notify = -1.0
+    last_notify = 0.0
+    notify_idx = 0
     last_log = 0.0
 
     try:
         while True:
             t = time.time() - t0
+
+            if args.duration and t >= args.duration:
+                print("duration elapsed, stopping")
+                break
 
             cycle = t % 40.0
             if cycle < 20.0:
@@ -224,7 +228,8 @@ def cmd_demo(ser, args):
 
             if t - last_notify >= 9.0:
                 last_notify = t
-                text, sev, blink, hide = notifications[int(t // 9.0) % len(notifications)]
+                text, sev, blink, hide = notifications[notify_idx % len(notifications)]
+                notify_idx += 1
                 ser.write(notify_frame(text, sev, blink, hide))
 
             if time.time() - last_log > 0.2:
@@ -250,8 +255,8 @@ def main():
     p.add_argument("--channels", default="crsf,wifi,starlink,vpn", help="comma list or all/none")
     p.set_defaults(func=cmd_telemetry)
 
-    p = sub.add_parser("notify", help="send a notification ('' clears the line)")
-    p.add_argument("text")
+    p = sub.add_parser("notify", help="send a notification (omitted/empty text clears the line)")
+    p.add_argument("text", nargs="?", default="", help="text; leave empty to clear the line")
     p.add_argument("--severity", choices=list(SEVERITY), default="info")
     p.add_argument("--blink", action="store_true", help="flash the text")
     p.add_argument("--hide", action="store_true", help="hide after 5 s")
@@ -267,6 +272,7 @@ def main():
     p = sub.add_parser("demo", help="stream a continuous demo")
     p.add_argument("--period", type=float, default=2.0, help="seconds between telemetry frames")
     p.add_argument("--odo", choices=["km", "mi"], default="km")
+    p.add_argument("--duration", type=float, default=0.0, help="stop after N seconds (0 = forever)")
     p.set_defaults(func=cmd_demo)
 
     args = ap.parse_args()

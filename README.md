@@ -211,6 +211,7 @@ firmware/
   partitions-16mb.csv  app 6 МБ / model 3.9 МБ / ffat 6 МБ
 tools/build.ps1        сборка + заливка (arduino-cli из Arduino IDE)
 tools/c2link.py        тестовый клиент протокола (телеметрия/уведомления/конфиг)
+tools/ble_scan.py       проверка присутствия BLE-устройства по MAC (BMS и др.)
 tools/rust-c2link/     клиент на Rust: библиотека, демо, тесты (для основного ПО)
 docs/ui-spec.md        ТЗ и раскладка экрана
 docs/board-notes.md    распиновка, грабли, пояснения

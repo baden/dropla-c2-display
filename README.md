@@ -217,6 +217,7 @@ docs/ui-spec.md        ТЗ и раскладка экрана
 docs/board-notes.md    распиновка, грабли, пояснения
 docs/link-protocol.md  протокол связи (USB CDC сейчас, UART/BLE — дальше)
 docs/integration-rust.md  руководство по интеграции: клиент на Rust
+docs/bms-ble-plan.md   идея на будущее: прямое подключение дисплея к BMS по BLE
 ```
 
 ## Как это работает

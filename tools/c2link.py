@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Test client for the c2_display USB CDC link.
 
 The protocol is described in docs/link-protocol.md:
@@ -11,6 +11,7 @@ Examples (Windows: `py tools/c2link.py ...`, Linux: `python3 ...`):
     py tools/c2link.py --port COM4 notify "Starlink searching" --severity info --hide
     py tools/c2link.py --port COM4 notify                    # clear the line
     py tools/c2link.py --port COM4 config --odo mi
+    py tools/c2link.py --port COM4 config --rotation 90
     py tools/c2link.py --port COM4 ping
     py tools/c2link.py --port COM4 sound double
     py tools/c2link.py --port COM4 sound sequence --tones "800:120:60,1200:160:0"
@@ -107,10 +108,25 @@ def notify_frame(text: str, severity: str = "info", blink: bool = False, hide: b
     return frame(MSG_NOTIFY, bytes([flags, len(raw)]) + raw)
 
 
-def config_frame(odo_unit: str = "km", extra: bytes = b"") -> bytes:
-    """TLV list; tag 0x01 = odometer unit (0 km, 1 mi)."""
-    items = bytes([0x01, 0x01, 1 if odo_unit == "mi" else 0]) + extra
-    count = 1 + (len(extra) > 0)
+def config_frame(odo_unit: str = "km", extra: bytes = b"", rotation=None) -> bytes:
+    """TLV list.
+
+    tag 0x01 = odometer unit (0 km, 1 mi)
+    tag 0x02 = panel rotation in degrees (u16 LE: 0, 90, 180, 270)
+    """
+    items = bytes([0x01, 0x01, 1 if odo_unit == "mi" else 0])
+    count = 1
+
+    if rotation is not None:
+        if rotation not in (0, 90, 180, 270):
+            raise ValueError("rotation must be 0, 90, 180 or 270 degrees")
+        items += bytes([0x02, 0x02]) + struct.pack("<H", rotation)
+        count += 1
+
+    if extra:
+        items += extra
+        count += 1
+
     return frame(MSG_CONFIG, bytes([count]) + items)
 
 
@@ -192,8 +208,8 @@ def cmd_notify(ser, args):
 
 
 def cmd_config(ser, args):
-    ser.write(config_frame(args.odo))
-    print(f"sent config odo_unit={args.odo}")
+    ser.write(config_frame(args.odo, rotation=args.rotation))
+    print(f"sent config odo_unit={args.odo} rotation={args.rotation}")
 
 
 def parse_tones(spec: str):
@@ -245,7 +261,7 @@ def cmd_ping(ser, args):
 def cmd_demo(ser, args):
     """Continuously stream a plausible flight: telemetry + rare notifications."""
     print(f"demo stream on {args.port}, {args.period:.1f} s per telemetry frame, Ctrl+C to stop")
-    ser.write(config_frame(args.odo))
+    ser.write(config_frame(args.odo, rotation=args.rotation))
 
     notifications = [
         ("Starlink searching", "info", False, True),
@@ -330,6 +346,8 @@ def main():
 
     p = sub.add_parser("config", help="send display configuration")
     p.add_argument("--odo", choices=["km", "mi"], default="km")
+    p.add_argument("--rotation", type=int, choices=[0, 90, 180, 270], default=None,
+                   help="panel rotation in degrees (saved in NVS)")
     p.set_defaults(func=cmd_config)
 
     p = sub.add_parser("ping", help="ping the display and print its pong")
@@ -344,6 +362,8 @@ def main():
     p = sub.add_parser("demo", help="stream a continuous demo")
     p.add_argument("--period", type=float, default=2.0, help="seconds between telemetry frames")
     p.add_argument("--odo", choices=["km", "mi"], default="km")
+    p.add_argument("--rotation", type=int, choices=[0, 90, 180, 270], default=None,
+                   help="panel rotation in degrees (saved in NVS)")
     p.add_argument("--duration", type=float, default=0.0, help="stop after N seconds (0 = forever)")
     p.add_argument("--no-sound", action="store_true", help="do not beep on notifications")
     p.set_defaults(func=cmd_demo)

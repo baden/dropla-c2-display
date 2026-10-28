@@ -6,6 +6,9 @@
 
 #include "audio_beep.h"
 #include "telemetry.h"
+#include "Display_ST77916.h"
+#include "settings.h"
+#include "ui.h"
 
 /* ---------------- frame format ----------------
  *   A5 5A | ver_type | seq | len(2, LE) | payload | crc16(2, LE)
@@ -35,6 +38,7 @@
 
 /* CONFIG tags (TLV) */
 #define CFG_TAG_ODO_UNIT 0x01
+#define CFG_TAG_ROTATION 0x02   /* 0, 90, 180 or 270 degrees */
 
 /* ---------------- parser state ---------------- */
 enum {
@@ -194,6 +198,25 @@ static void on_config(const uint8_t *p, uint16_t len)
                 telem.odometer_unit = (p[i] == C2_ODO_MI) ? C2_ODO_MI : C2_ODO_KM;
             }
             break;
+
+        case CFG_TAG_ROTATION:
+            if (l >= 2) {
+                /* u16 LE, degrees: 0, 90, 180 or 270. */
+                uint16_t deg = (uint16_t)(p[i] | ((uint16_t)p[i + 1] << 8));
+                if (deg == 0 || deg == 90 || deg == 180 || deg == 270) {
+                    if (deg != LCD_GetRotation()) {
+                        LCD_SetRotation(deg);
+                        settings_rotation_save(deg);
+                        ui_redraw_all();
+                    }
+                } else {
+                    printf("link: config rotation %u ignored (expected 0/90/180/270)\r\n", deg);
+                }
+            } else {
+                printf("link: config rotation tag needs 2 bytes\r\n");
+            }
+            break;
+
         default:
             break;      /* unknown tags are skipped on purpose (forward compatible) */
         }
@@ -202,7 +225,8 @@ static void on_config(const uint8_t *p, uint16_t len)
     }
 
     telem.cfg_valid = true;
-    printf("link: config odo_unit=%u\r\n", telem.odometer_unit);
+    printf("link: config odo_unit=%u rotation=%u\r\n",
+           telem.odometer_unit, LCD_GetRotation());
 }
 
 static void on_sound(const uint8_t *p, uint16_t len)

@@ -180,11 +180,11 @@ on_notify(data, len):
 
 ### 5.5. Конфигурация (CONFIG, TLV)
 
-Добавить тег `0x02`:
+Добавить тег `0x03` (тег `0x02` уже занят поворотом экрана):
 
 ```text
-tag 0x02, len 1:  mode         0 = BMS выключен, 1 = включён
-tag 0x02, len 7:  mode + MAC   6 байт MAC
+tag 0x03, len 1:  mode         0 = BMS выключен, 1 = включён
+tag 0x03, len 7:  mode + MAC   6 байт MAC
 ```
 
 Это позволяет:

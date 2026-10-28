@@ -377,6 +377,64 @@ void LCD_addWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yen
 }
 
 
+/* Panel image rotation. MADCTL handles it in hardware, so LVGL keeps drawing
+ * in its normal 360x360 coordinate system and the panel rotates the result.
+ *   0   -> MV=0 MX=0 MY=0
+ *   90  -> MV=1 MX=1 MY=0
+ *   180 -> MV=0 MX=1 MY=1
+ *   270 -> MV=1 MX=0 MY=1
+ * If 90 and 270 ever look swapped on a particular panel batch, exchange the
+ * mx/my assignments in those two cases; the angles themselves stay exact. */
+static uint16_t lcd_rotation = 0;
+
+void LCD_SetRotation(uint16_t deg)
+{
+    if (panel_handle == NULL) {
+        printf("lcd: rotation requested before panel init\r\n");
+        return;
+    }
+
+    bool swap = false;
+    bool mx = false;
+    bool my = false;
+
+    switch (deg) {
+    case 90:
+        swap = true;
+        mx = true;
+        break;
+    case 180:
+        mx = true;
+        my = true;
+        break;
+    case 270:
+        swap = true;
+        my = true;
+        break;
+    case 0:
+        break;
+    default:
+        printf("lcd: rotation %u invalid, using 0\r\n", deg);
+        deg = 0;
+        break;
+    }
+
+    esp_err_t e_swap = esp_lcd_panel_swap_xy(panel_handle, swap);
+    esp_err_t e_mirror = esp_lcd_panel_mirror(panel_handle, mx, my);
+    if (e_swap != ESP_OK || e_mirror != ESP_OK) {
+        printf("lcd: rotation %u failed (swap %d, mirror %d)\r\n", deg, e_swap, e_mirror);
+        return;
+    }
+
+    lcd_rotation = deg;
+    printf("lcd: rotation %u deg\r\n", deg);
+}
+
+uint16_t LCD_GetRotation(void)
+{
+    return lcd_rotation;
+}
+
 uint8_t LCD_Backlight = 50;
 // backlight
 void Backlight_Init()

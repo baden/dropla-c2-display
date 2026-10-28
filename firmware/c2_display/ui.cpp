@@ -577,3 +577,12 @@ void ui_update(void)
     }
     lv_obj_set_style_text_color(lbl_odo, fresh ? C_ODO : C_DIM, 0);
 }
+
+void ui_redraw_all(void)
+{
+    /* The panel keeps its GRAM; after a MADCTL change the old content would be
+     * shown rotated until every area is painted again. One full invalidation
+     * is cheaper than tracking which parts were touched before the rotation. */
+    lv_obj_invalidate(lv_scr_act());
+    lv_refr_now(NULL);
+}

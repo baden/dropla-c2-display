@@ -365,6 +365,7 @@ count | tag len value | tag len value | ...
 | Тег | `len` | Значение | Смысл |
 |---|---|---|---|
 | `0x01` | 1 | `0` = км, `1` = мили | единицы одометра |
+| `0x02` | 2 | `u16 LE`: `0`, `90`, `180`, `270` | поворот изображения |
 
 Правила:
 
@@ -372,8 +373,8 @@ count | tag len value | tag len value | ...
   добавляются без смены версии протокола;
 - при обрезанном/битом TLV панель прекращает разбор остатка кадра (остальное
   игнорируется), но уже применённые теги остаются;
-- значения по умолчанию — км; после каждой перезагрузки панели конфигурацию
-  нужно отправить заново;
+- единицы одометра после перезагрузки сбрасываются в км, поэтому конфигурацию
+  нужно отправить заново; **поворот** сохраняется в NVS и переживает перезагрузку;
 - `count = 0` — валидный кадр-пустышка (ничего не меняет).
 
 ### 5.4. SOUND (`0x5`) — звуковые сигналы
@@ -699,9 +700,25 @@ impl Notify {
 #[repr(u8)]
 pub enum OdometerUnit { Km = 0, Miles = 1 }
 
+/// Поворот изображения (тег `0x02`). Панель сохраняет его в NVS.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Rotation { Deg0, Deg90, Deg180, Deg270 }
+
+impl Rotation {
+    pub const fn degrees(self) -> u16 {
+        match self {
+            Rotation::Deg0 => 0,
+            Rotation::Deg90 => 90,
+            Rotation::Deg180 => 180,
+            Rotation::Deg270 => 270,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Config {
     pub odometer_unit: Option<OdometerUnit>,
+    pub rotation: Option<Rotation>,
 }
 
 impl Config {
@@ -710,10 +727,18 @@ impl Config {
         self
     }
 
+    pub fn rotation(mut self, rotation: Rotation) -> Self {
+        self.rotation = Some(rotation);
+        self
+    }
+
     pub fn encode(&self) -> Vec<u8> {
         let mut items: Vec<(u8, Vec<u8>)> = Vec::new();
         if let Some(unit) = self.odometer_unit {
             items.push((0x01, vec![unit as u8]));
+        }
+        if let Some(rotation) = self.rotation {
+            items.push((0x02, rotation.degrees().to_le_bytes().to_vec()));
         }
         let mut p = vec![items.len() as u8];
         for (tag, value) in items {
@@ -724,7 +749,15 @@ impl Config {
         p
     }
 }
+```
 
+Поворот применяется сразу и **сохраняется в NVS панели** (в отличие от единиц
+одометра). Достаточно один раз отправить
+`Config::default().rotation(Rotation::Deg90)` — при следующем включении панель
+поднимется уже в этом положении. Допустимы `0`, `90`, `180`, `270`; другие
+значения панель игнорирует.
+
+```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tone {
     pub freq_hz: u16,   // 100..8000
@@ -1002,7 +1035,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut dev = Display::open(&path)?;
 
     // Единицы одометра не переживают перезагрузку панели — шлём при подключении.
+    // Поворот, наоборот, хранится в NVS; эта строка нужна только чтобы сменить его.
     dev.config(&Config::default().odometer_unit(OdometerUnit::Km))?;
+    // dev.config(&Config::default().rotation(c2link::Rotation::Deg90))?;
 
     let start = Instant::now();
     let mut next_telemetry = start;

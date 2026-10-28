@@ -19,6 +19,7 @@
 #include "ui.h"
 #include "audio_beep.h"
 #include "link.h"
+#include "settings.h"
 
 void setup()
 {
@@ -33,6 +34,9 @@ void setup()
     Set_Backlight(0);           /* keep the panel dark until a valid frame is drawn */
 
     LCD_Init();
+    /* Apply the saved orientation before the first LVGL frame, so the boot
+     * animation already comes up the right way round. */
+    LCD_SetRotation(settings_rotation_load());
     lvgl_port_init();
     ui_init();
     beep_init();                /* PCM5101 + speaker: short beeps, no SD card needed */

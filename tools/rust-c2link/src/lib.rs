@@ -274,11 +274,33 @@ pub enum OdometerUnit {
     Miles = 1,
 }
 
+/// Panel image rotation (tag `0x02`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Rotation {
+    Deg0,
+    Deg90,
+    Deg180,
+    Deg270,
+}
+
+impl Rotation {
+    pub const fn degrees(self) -> u16 {
+        match self {
+            Rotation::Deg0 => 0,
+            Rotation::Deg90 => 90,
+            Rotation::Deg180 => 180,
+            Rotation::Deg270 => 270,
+        }
+    }
+}
+
 /// Configuration TLV. The panel applies defaults (km) on boot, so send the
 /// configuration once after connecting (and after every panel reboot).
+/// The rotation, unlike the odometer unit, is also saved in the panel's NVS.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Config {
     pub odometer_unit: Option<OdometerUnit>,
+    pub rotation: Option<Rotation>,
 }
 
 impl Config {
@@ -287,10 +309,18 @@ impl Config {
         self
     }
 
+    pub fn rotation(mut self, rotation: Rotation) -> Self {
+        self.rotation = Some(rotation);
+        self
+    }
+
     pub fn encode(&self) -> Vec<u8> {
         let mut items: Vec<(u8, Vec<u8>)> = Vec::new();
         if let Some(unit) = self.odometer_unit {
             items.push((0x01, vec![unit as u8]));
+        }
+        if let Some(rotation) = self.rotation {
+            items.push((0x02, rotation.degrees().to_le_bytes().to_vec()));
         }
 
         let mut p = vec![items.len() as u8];
@@ -324,6 +354,18 @@ impl Config {
                 } else {
                     OdometerUnit::Km
                 });
+            }
+            if tag == 0x02 && len >= 2 {
+                let deg = u16::from_le_bytes([value[0], value[1]]);
+                if let Some(rotation) = match deg {
+                    0 => Some(Rotation::Deg0),
+                    90 => Some(Rotation::Deg90),
+                    180 => Some(Rotation::Deg180),
+                    270 => Some(Rotation::Deg270),
+                    _ => None, // invalid value: ignore it
+                } {
+                    cfg.rotation = Some(rotation);
+                }
             }
             // Unknown tags are skipped on purpose (forward compatibility).
         }
@@ -688,6 +730,28 @@ mod tests {
         let frame = encode(msg::CONFIG, 4, &cfg.encode());
         assert_eq!(hex(&frame), "A5 5A 13 04 04 00 01 01 01 01 0C 61");
         assert_eq!(Config::decode(&cfg.encode()), Some(cfg));
+    }
+
+    #[test]
+    fn config_rotation_roundtrip() {
+        let cfg = Config::default()
+            .odometer_unit(OdometerUnit::Km)
+            .rotation(Rotation::Deg90);
+        assert_eq!(cfg.encode(), vec![2, 0x01, 1, 0, 0x02, 2, 90, 0]);
+        assert_eq!(Config::decode(&cfg.encode()), Some(cfg));
+    }
+
+    #[test]
+    fn config_rotation_270() {
+        let cfg = Config::default().rotation(Rotation::Deg270);
+        assert_eq!(cfg.encode(), vec![1, 0x02, 2, 0x0E, 0x01]);
+        assert_eq!(Config::decode(&cfg.encode()), Some(cfg));
+    }
+
+    #[test]
+    fn config_rotation_invalid_ignored() {
+        let payload = unhex("01 02 02 45 00"); // 69 degrees
+        assert_eq!(Config::decode(&payload), Some(Config::default()));
     }
 
     #[test]

@@ -42,6 +42,10 @@ void ST77916_Init();
 void LCD_Init();
 void LCD_addWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend,uint16_t* color);
 
+/** Rotate the panel image: 0, 90, 180 or 270 degrees (other values -> 0). */
+void LCD_SetRotation(uint16_t deg);
+uint16_t LCD_GetRotation(void);
+
 // backlight
 void Backlight_Init();
 void Set_Backlight(uint8_t Light);  

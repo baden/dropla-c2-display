@@ -733,6 +733,16 @@ mod tests {
     }
 
     #[test]
+    fn golden_config_rotation() {
+        let cfg = Config::default().rotation(Rotation::Deg90);
+        let frame = encode(msg::CONFIG, 4, &cfg.encode());
+        assert_eq!(
+            hex(&frame),
+            "A5 5A 13 04 05 00 01 02 02 5A 00 2F D8"
+        );
+    }
+
+    #[test]
     fn config_rotation_roundtrip() {
         let cfg = Config::default()
             .odometer_unit(OdometerUnit::Km)

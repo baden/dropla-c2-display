@@ -757,6 +757,10 @@ impl Config {
 поднимется уже в этом положении. Допустимы `0`, `90`, `180`, `270`; другие
 значения панель игнорирует.
 
+Если у вас уже есть ведущее ПО, рассчитанное на предыдущую прошивку, порядок
+перехода и подводные камни описаны в
+[`host-migration-rotation.md`](host-migration-rotation.md).
+
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tone {
